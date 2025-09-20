@@ -1,175 +1,59 @@
-# DE Kannada Rajyotsava Badminton Tournament 2025 - Requirements
-# Flutter Web Application Dependencies and System Requirements
+# IMPORTANT: This is a Flutter Web Application, not a Python project
+# 
+# For Render deployment, use these settings:
+# - Service Type: Static Site
+# - Build Command: See render.yaml or docs/render_deployment.md
+# - Publish Directory: flutter_web/build/web
+#
+# This project does not use Python dependencies.
+# All dependencies are managed through Flutter's pubspec.yaml
+#
+# For deployment instructions, see: docs/render_deployment.md
+
+# DE Kannada Rajyotsava Badminton Tournament 2025 - Flutter Web App
+# Repository: https://github.com/vrsimha-sys/DEKannadaRajyotsava2025
 
 # =============================================================================
-# SYSTEM REQUIREMENTS
+# DEPLOYMENT REQUIREMENTS FOR RENDER
 # =============================================================================
 
-# Flutter SDK
-# Version: 3.0.0 or higher
-# Download: https://flutter.dev/docs/get-started/install
-# Commands to verify: flutter --version, flutter doctor
-
-# Dart SDK
-# Version: 3.0.0 or higher (comes with Flutter)
-# Verify: dart --version
-
-# Git
-# Version: 2.0+ recommended
-# Download: https://git-scm.com/downloads
-# Verify: git --version
-
-# Web Browser
-# Chrome (recommended for development)
-# Firefox, Edge, Safari (for testing)
+# Service Type: Static Site (not Web Service)
+# Runtime: Use Flutter build process (not Python/Node.js runtime)
+# Build Command: See render.yaml or package.json scripts
+# Publish Directory: flutter_web/build/web
 
 # =============================================================================
 # FLUTTER DEPENDENCIES (from pubspec.yaml)
 # =============================================================================
 
-# Core Flutter Framework
-flutter:
-  sdk: flutter
-
-# UI and Material Design
-cupertino_icons: ^1.0.2
-
-# HTTP and API Integration
-http: ^1.1.0
-
-# Internationalization and Date/Time Formatting
-intl: ^0.19.0
+# flutter: sdk
+# cupertino_icons: ^1.0.2
+# http: ^1.1.0
+# intl: ^0.19.0
 
 # =============================================================================
-# DEVELOPMENT DEPENDENCIES
+# RENDER STATIC SITE CONFIGURATION
 # =============================================================================
 
-# Testing Framework
-flutter_test:
-  sdk: flutter
+# Build Command (use one of these):
 
-# Code Quality and Linting
-flutter_lints: ^3.0.0
+# Option 1: Full Flutter Installation
+# curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.13.9-stable.tar.xz -o flutter.tar.xz && tar xf flutter.tar.xz && export PATH="$PATH:$PWD/flutter/bin" && flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release --web-renderer html
 
-# =============================================================================
-# EXTERNAL SERVICE DEPENDENCIES
-# =============================================================================
+# Option 2: Use build script
+# chmod +x build.sh && ./build.sh
 
-# Google Services (Required for project functionality)
-# - Google Sheets API (for data management)
-# - Google Drive API (for player photos)
-# Note: Requires Google Cloud Console project setup
+# Publish Directory:
+# flutter_web/build/web
 
 # =============================================================================
-# OPTIONAL ENHANCEMENTS (Future Implementation)
+# ALTERNATIVE: PRE-BUILT DEPLOYMENT
 # =============================================================================
 
-# State Management (if needed in future)
-# provider: ^6.0.0
-# riverpod: ^2.0.0
-# bloc: ^8.0.0
-
-# Local Storage (if needed)
-# shared_preferences: ^2.0.0
-# hive: ^2.0.0
-
-# Enhanced UI Components (if needed)
-# animations: ^2.0.0
-# lottie: ^2.0.0
-# flutter_staggered_grid_view: ^0.6.0
-
-# Image Handling (if local images needed)
-# image_picker: ^1.0.0
-# cached_network_image: ^3.0.0
-
-# URL Handling
-# url_launcher: ^6.0.0
-
-# =============================================================================
-# PLATFORM-SPECIFIC REQUIREMENTS
-# =============================================================================
-
-# Web Deployment
-# - Web server (Apache, Nginx, or GitHub Pages)
-# - HTTPS support recommended
-# - CORS configuration for API calls
-
-# Development Environment
-# - Visual Studio Code (recommended)
-# - Android Studio (alternative)
-# - VS Code Extensions:
-#   - Flutter
-#   - Dart
-#   - GitLens
-#   - Bracket Pair Colorizer
-
-# =============================================================================
-# INSTALLATION COMMANDS
-# =============================================================================
-
-# 1. Install Flutter SDK
-# Follow instructions at: https://flutter.dev/docs/get-started/install
-
-# 2. Verify Flutter installation
-# flutter doctor
-
-# 3. Clone the repository
-# git clone https://github.com/vrsimha-sys/DEKannadaRajyotsava2025.git
-
-# 4. Navigate to Flutter project
-# cd DEKannadaRajyotsava2025/flutter_web
-
-# 5. Get Flutter dependencies
-# flutter pub get
-
-# 6. Run the application
-# flutter run -d web-server --web-port=8080
-
-# 7. Build for production
-# flutter build web
-
-# =============================================================================
-# MINIMUM SYSTEM SPECIFICATIONS
-# =============================================================================
-
-# Operating System:
-# - Windows 10 (64-bit) or higher
-# - macOS 10.14 (Mojave) or higher
-# - Linux (64-bit) - Ubuntu 18.04 LTS or higher
-
-# Hardware:
-# - RAM: 4 GB minimum, 8 GB recommended
-# - Storage: 2 GB free space for Flutter SDK
-# - Network: Internet connection for dependencies and API calls
-
-# =============================================================================
-# ENVIRONMENT VARIABLES (Optional)
-# =============================================================================
-
-# FLUTTER_ROOT: Path to Flutter SDK installation
-# DART_SDK: Path to Dart SDK (usually within Flutter SDK)
-# PATH: Should include Flutter SDK bin directory
-
-# =============================================================================
-# GOOGLE SHEETS CONFIGURATION
-# =============================================================================
-
-# Required for the application to function:
-# 1. Google Sheets document with proper structure
-# 2. Publicly accessible sharing settings
-# 3. Correct spreadsheet ID in google_sheets_service.dart
-# 4. Sheet tabs: Players, Teams, Matches, Live_Updates
-
-# =============================================================================
-# NOTES
-# =============================================================================
-
-# 1. This is a Flutter web application, not a Python project
-# 2. Dependencies are managed through pubspec.yaml, not requirements.txt
-# 3. This file serves as documentation for setup requirements
-# 4. For production deployment, run 'flutter build web'
-# 5. Ensure Google Sheets permissions are properly configured
-# 6. Player photos require Google Drive public sharing enabled
+# If Render build fails, build locally and push build files:
+# 1. Run: cd flutter_web && flutter build web --release
+# 2. Create new repo with only flutter_web/build/web contents
+# 3. Deploy that repo as static site
 
 # Last Updated: September 20, 2025
 # Project: DE Kannada Rajyotsava Badminton Tournament 2025

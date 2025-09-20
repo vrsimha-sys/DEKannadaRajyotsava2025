@@ -1,0 +1,29 @@
+{
+  "name": "de-kannada-rajyotsava-tournament",
+  "version": "1.0.0",
+  "description": "Flutter web application for DE Kannada Rajyotsava Badminton Tournament 2025",
+  "scripts": {
+    "build": "chmod +x build.sh && ./build.sh",
+    "start": "echo 'This is a Flutter web app. Use npm run build to build for production.'",
+    "postbuild": "echo 'Flutter web build completed. Files are in flutter_web/build/web/'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vrsimha-sys/DEKannadaRajyotsava2025.git"
+  },
+  "keywords": [
+    "flutter",
+    "web",
+    "badminton",
+    "tournament",
+    "kannada",
+    "rajyotsava"
+  ],
+  "author": "vrsimha-sys",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

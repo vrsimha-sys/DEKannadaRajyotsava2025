@@ -1,0 +1,12 @@
+# Render Static Site Configuration
+# For Flutter Web Application Deployment
+
+# Build Command (executed during deployment)
+flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release --web-renderer html
+
+# Publish Directory (where built files are located)
+flutter_web/build/web
+
+# Environment Variables (set in Render dashboard)
+# NODE_ENV=production
+# FLUTTER_WEB=true
