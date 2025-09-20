@@ -7,6 +7,14 @@ set -e  # Exit on any error
 
 echo "🚀 Starting Flutter Web Build for Render Deployment..."
 
+# Debug environment information
+echo "🔍 Environment Debug Info:"
+echo "PWD: $PWD"
+echo "HOME: $HOME"
+echo "RENDER: $RENDER"
+echo "RENDER_GIT_REPO_SLUG: $RENDER_GIT_REPO_SLUG"
+echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+
 # Set environment variables
 export PATH="$PATH:/opt/flutter/bin:/tmp/flutter/bin"
 export PUB_CACHE="${PUB_CACHE:-/tmp/.pub-cache}"
@@ -45,13 +53,23 @@ echo "🌐 Configuring Flutter for web..."
 flutter config --enable-web
 
 echo "📂 Navigating to Flutter project directory..."
-# Handle both Render environment and local development
-if [ -n "$RENDER" ]; then
-    # Render environment
-    cd "${RENDER_GIT_REPO_SLUG:-flutter_web}" || cd "flutter_web"
+# Check current directory first
+echo "Current directory: $(pwd)"
+echo "Directory contents:"
+ls -la
+
+# Navigate to flutter_web directory
+if [ -d "flutter_web" ]; then
+    echo "✅ Found flutter_web directory"
+    cd flutter_web
+elif [ -d "./flutter_web" ]; then
+    echo "✅ Found ./flutter_web directory"
+    cd ./flutter_web
 else
-    # Local or other CI environment
-    cd "${GITHUB_WORKSPACE:-$PWD}/flutter_web" || cd "flutter_web"
+    echo "❌ flutter_web directory not found!"
+    echo "Available directories:"
+    ls -la
+    exit 1
 fi
 
 echo "📋 Flutter project directory contents:"
