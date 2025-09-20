@@ -1,0 +1,97 @@
+# Flutter/Dart specific
+.dart_tool/
+.packages
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Build directories
+build/
+**/build/
+
+# Web build output
+flutter_web/build/
+flutter_web/.dart_tool/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Flutter specific
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Web specific
+flutter_web/web/icons/Icon-*
+flutter_web/web/manifest.json
+
+# Generated files
+**/*.g.dart
+**/*.freezed.dart
+**/*.config.dart
+
+# Coverage
+coverage/
+
+# Firebase
+firebase_options.dart
+.firebase/
+
+# Secrets and sensitive data
+secrets/
+*.key
+*.pem
+google-services.json
+GoogleService-Info.plist
+
+# Local configuration
+local.properties
+
+# Android
+android/app/debug
+android/app/profile
+android/app/release
+android/.gradle/
+android/app/outputs/
+android/local.properties
+
+# iOS
+ios/Runner.xcarchive
+ios/Runner.xcworkspace/
+ios/Pods/
+ios/DerivedData/
+
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
