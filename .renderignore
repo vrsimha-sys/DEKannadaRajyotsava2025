@@ -1,0 +1,8 @@
+# Render ignore file - ignore Python-related files
+requirements.txt.bak
+*.py
+__pycache__/
+*.pyc
+.python-version
+poetry.lock
+pyproject.toml

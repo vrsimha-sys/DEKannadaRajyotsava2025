@@ -1,14 +1,22 @@
 # Render Blueprint Configuration
-# Flutter Web Static Site Deployment
+# Flutter Web Static Site Deployment - Force Static Site Detection
 
 services:
   - type: web
     name: de-kannada-rajyotsava-tournament
     runtime: static
-    buildCommand: chmod +x build.sh && ./build.sh
+    repo: https://github.com/vrsimha-sys/DEKannadaRajyotsava2025
+    buildCommand: |
+      echo "==> Starting Flutter Web Build..."
+      chmod +x build.sh
+      ./build.sh
+      echo "==> Build completed, checking output..."
+      ls -la flutter_web/build/web/
     staticPublishPath: flutter_web/build/web
     envVars:
       - key: FLUTTER_WEB
         value: true
       - key: NODE_ENV
         value: production
+      - key: DISABLE_COLLECTSTATIC
+        value: 1
