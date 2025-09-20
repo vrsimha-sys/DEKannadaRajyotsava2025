@@ -1,12 +1,14 @@
-# Render Static Site Configuration
-# For Flutter Web Application Deployment
+# Render Blueprint Configuration
+# Flutter Web Static Site Deployment
 
-# Build Command (executed during deployment)
-flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release --web-renderer html
-
-# Publish Directory (where built files are located)
-flutter_web/build/web
-
-# Environment Variables (set in Render dashboard)
-# NODE_ENV=production
-# FLUTTER_WEB=true
+services:
+  - type: web
+    name: de-kannada-rajyotsava-tournament
+    runtime: static
+    buildCommand: chmod +x build.sh && ./build.sh
+    staticPublishPath: flutter_web/build/web
+    envVars:
+      - key: FLUTTER_WEB
+        value: true
+      - key: NODE_ENV
+        value: production
