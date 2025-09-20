@@ -80,6 +80,11 @@ else
     
     echo "🔧 Running Flutter doctor..."
     flutter doctor -v
+    
+    # CRITICAL: Return to project directory after Flutter installation
+    echo "🏠 Returning to project directory after Flutter installation..."
+    cd /opt/render/project/src
+    echo "📍 Back in project directory: $(pwd)"
 fi
 
 echo "🌐 Configuring Flutter for web..."
