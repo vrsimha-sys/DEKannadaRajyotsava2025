@@ -17,23 +17,32 @@ echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
 
 # Navigate to project directory first
 echo "🏠 Navigating to project directory..."
-if [ -n "$RENDER_GIT_REPO_SLUG" ]; then
-    # In Render environment, navigate to the project directory
-    PROJECT_DIR="/opt/render/project/src"
-    if [ -d "$PROJECT_DIR" ]; then
-        cd "$PROJECT_DIR"
-        echo "✅ Changed to Render project directory: $PROJECT_DIR"
-    else
-        echo "❌ Render project directory not found: $PROJECT_DIR"
-        echo "Available directories in /opt/render/project/:"
-        ls -la /opt/render/project/ 2>/dev/null || echo "Directory not accessible"
-        exit 1
-    fi
-elif [ -n "$GITHUB_WORKSPACE" ]; then
+
+# Force navigation to Render project directory
+PROJECT_DIR="/opt/render/project/src"
+echo "🔍 Checking for Render project directory: $PROJECT_DIR"
+
+if [ -d "$PROJECT_DIR" ]; then
+    echo "✅ Found Render project directory, navigating..."
+    cd "$PROJECT_DIR"
+    echo "✅ Changed to Render project directory: $(pwd)"
+elif [ -n "$GITHUB_WORKSPACE" ] && [ -d "$GITHUB_WORKSPACE" ]; then
+    echo "✅ Using GitHub workspace directory"
     cd "$GITHUB_WORKSPACE"
-    echo "✅ Changed to GitHub workspace: $GITHUB_WORKSPACE"
+    echo "✅ Changed to GitHub workspace: $(pwd)"
 else
-    echo "⚠️ Using current directory: $PWD"
+    echo "⚠️ No standard project directory found, checking alternatives..."
+    
+    # Try to find project directory by looking for package.json or flutter_web
+    for possible_dir in "/opt/render/project" "/app" "$HOME" "$PWD"; do
+        if [ -d "$possible_dir" ] && [ -f "$possible_dir/package.json" -o -d "$possible_dir/flutter_web" ]; then
+            echo "✅ Found project files in: $possible_dir"
+            cd "$possible_dir"
+            break
+        fi
+    done
+    
+    echo "📍 Current working directory: $(pwd)"
 fi
 
 echo "📋 Current directory contents:"
