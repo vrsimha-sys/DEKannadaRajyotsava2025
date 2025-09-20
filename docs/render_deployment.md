@@ -20,10 +20,23 @@
 - **Root Directory**: `/` (leave empty)
 
 **Build Settings:**
-- **Build Command**: 
-  ```bash
-  curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.13.9-stable.tar.xz -o flutter.tar.xz && tar xf flutter.tar.xz && export PATH="$PATH:$PWD/flutter/bin" && flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release --web-renderer html
-  ```
+- **Build Command** (Use one of these options):
+
+**Option 1 - Using Build Script (Recommended):**
+```bash
+chmod +x build.sh && ./build.sh
+```
+
+**Option 2 - Direct Flutter Install:**
+```bash
+curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.3-stable.tar.xz -o flutter.tar.xz && tar xf flutter.tar.xz && export PATH="$PATH:$PWD/flutter/bin" && flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release --web-renderer html
+```
+
+**Option 3 - Git Clone (Slower but More Reliable):**
+```bash
+git clone https://github.com/flutter/flutter.git -b stable --depth 1 && export PATH="$PATH:$PWD/flutter/bin" && flutter config --enable-web && cd flutter_web && flutter pub get && flutter build web --release
+```
+
 - **Publish Directory**: `flutter_web/build/web`
 
 **Advanced Settings:**
@@ -58,15 +71,18 @@
 
 ### Manual Deployment Alternative
 
-If automatic build fails, you can build locally and deploy:
+If automatic build fails, you can build locally and deploy the static files:
 
-1. Build locally:
+1. **Build locally:**
    ```bash
    cd flutter_web
-   flutter build web --release
+   flutter build web --release --web-renderer html
    ```
 
-2. Deploy build/web folder as static files
+2. **Deploy build/web folder:**
+   - Zip the `flutter_web/build/web` directory
+   - Upload as static files to any hosting service
+   - Or use Render's manual deployment option
 
 ### Custom Domain (Optional)
 1. Go to your Render service dashboard
