@@ -7,16 +7,8 @@ set -e  # Exit on any error
 
 echo "🚀 Starting Flutter Web Build for Render Deployment..."
 
-# Debug environment information
-echo "🔍 Environment Debug Info:"
-echo "PWD: $PWD"
-echo "HOME: $HOME"
-echo "RENDER: $RENDER"
-echo "RENDER_GIT_REPO_SLUG: $RENDER_GIT_REPO_SLUG"
-echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-
-# Navigate to project directory first
-echo "🏠 Navigating to project directory..."
+# CRITICAL: Navigate to project directory FIRST before anything else
+echo "🏠 CRITICAL: Navigating to project directory..."
 
 # Force navigation to Render project directory
 PROJECT_DIR="/opt/render/project/src"
@@ -45,8 +37,16 @@ else
     echo "📍 Current working directory: $(pwd)"
 fi
 
-echo "📋 Current directory contents:"
+echo "📋 AFTER NAVIGATION - Current directory contents:"
 ls -la
+
+# Debug environment information
+echo "🔍 Environment Debug Info:"
+echo "PWD: $PWD"
+echo "HOME: $HOME"
+echo "RENDER: $RENDER"
+echo "RENDER_GIT_REPO_SLUG: $RENDER_GIT_REPO_SLUG"
+echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
 
 # Set environment variables
 export PATH="$PATH:/opt/flutter/bin:/tmp/flutter/bin"
@@ -85,26 +85,21 @@ fi
 echo "🌐 Configuring Flutter for web..."
 flutter config --enable-web
 
-echo "📂 Looking for Flutter project directory..."
+echo "📂 Navigating to flutter_web subdirectory..."
 echo "Current directory: $(pwd)"
-echo "Directory contents:"
-ls -la
 
-# Navigate to flutter_web directory
+# Navigate to flutter_web directory (should be in project root now)
 if [ -d "flutter_web" ]; then
     echo "✅ Found flutter_web directory"
     cd flutter_web
     echo "📋 Inside flutter_web directory:"
     ls -la
-elif [ -d "./flutter_web" ]; then
-    echo "✅ Found ./flutter_web directory"
-    cd ./flutter_web
-    echo "📋 Inside flutter_web directory:"
-    ls -la
 else
-    echo "❌ flutter_web directory not found!"
+    echo "❌ flutter_web directory not found in project root!"
+    echo "Contents of current directory:"
+    ls -la
     echo "Searching for flutter_web in subdirectories..."
-    find . -type d -name "flutter_web" 2>/dev/null || echo "No flutter_web directory found"
+    find . -type d -name "flutter_web" 2>/dev/null || echo "No flutter_web directory found anywhere"
     exit 1
 fi
 
