@@ -671,6 +671,13 @@ class TeamTableCard extends StatelessWidget {
   }
 
   Widget _buildTeamCard(Map<String, String> team) {
+    // Explicit null safety for all team data access
+    final teamName = team['teamName']?.toString() ?? 'Unknown Team';
+    final ownerName = team['ownerName']?.toString() ?? 'Unknown Owner';
+    final ownerFlat = team['ownerFlat']?.toString() ?? '---';
+    final marqueePlayerName = team['marqueePlayerName']?.toString() ?? 'Unknown Player';
+    final marqueePlayerFlat = team['marqueePlayerFlat']?.toString() ?? '---';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -695,7 +702,7 @@ class TeamTableCard extends StatelessWidget {
         children: [
           // Team Name
           Text(
-            team['teamName']!,
+            teamName,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -705,24 +712,29 @@ class TeamTableCard extends StatelessWidget {
           const SizedBox(height: 8),
           
           // Owner Info
-          _buildPersonInfo('Owner', team['ownerName']!, team['ownerFlat']!),
+          _buildPersonInfo('Owner', ownerName, ownerFlat),
           const SizedBox(height: 6),
           
           // Marquee Player Info
-          _buildPersonInfo('Marquee Player', team['marqueePlayerName']!, team['marqueePlayerFlat']!),
+          _buildPersonInfo('Marquee Player', marqueePlayerName, marqueePlayerFlat),
         ],
       ),
     );
   }
 
   Widget _buildPersonInfo(String label, String name, String flat) {
+    // Explicit null safety for parameters
+    final safeLabel = label.toString();
+    final safeName = name.toString();
+    final safeFlat = flat.toString();
+    
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 100,
           child: Text(
-            '$label:',
+            '$safeLabel:',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -736,7 +748,7 @@ class TeamTableCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                name,
+                safeName,
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -744,7 +756,7 @@ class TeamTableCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Flat: $flat',
+                'Flat: $safeFlat',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey[600],
