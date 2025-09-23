@@ -57,6 +57,8 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 800;
 
+    print('TeamFormationPage: Build method called, isDesktop: $isDesktop');
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Column(
@@ -77,56 +79,61 @@ class _TeamFormationPageState extends State<TeamFormationPage>
             ),
             child: Column(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                Stack(
                   children: [
-                    Text(
-                      'Team Formation',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 32 : 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Team Formation',
+                          style: TextStyle(
+                            fontSize: isDesktop ? 32 : 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Player Selection & Team Building',
+                          style: TextStyle(
+                            fontSize: isDesktop ? 16 : 14,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sunday, 28 September, 2025',
+                          style: TextStyle(
+                            fontSize: isDesktop ? 14 : 12,
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.w300,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Player Selection & Team Building',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 16 : 14,
-                        color: Colors.white.withOpacity(0.9),
+                    // Add refresh button
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        onPressed: () {
+                          print('TeamFormationPage: Refresh button pressed');
+                          setState(() {
+                            // This will trigger a rebuild and re-fetch the data
+                          });
+                        },
+                        icon: Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        tooltip: 'Refresh Teams Data',
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sunday, 28 September, 2025',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 14 : 12,
-                        color: Colors.white.withOpacity(0.8),
-                        fontWeight: FontWeight.w300,
-                      ),
-                      textAlign: TextAlign.center,
                     ),
                   ],
-                ),
-                // Add refresh button
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        // This will trigger a rebuild and re-fetch the data
-                      });
-                    },
-                    icon: Icon(
-                      Icons.refresh,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    tooltip: 'Refresh Teams Data',
-                  ),
                 ),
               ],
             ),
@@ -137,6 +144,13 @@ class _TeamFormationPageState extends State<TeamFormationPage>
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _getTeams(),
               builder: (context, snapshot) {
+                print('TeamFormationPage: FutureBuilder state: ${snapshot.connectionState}');
+                print('TeamFormationPage: Has data: ${snapshot.hasData}');
+                print('TeamFormationPage: Has error: ${snapshot.hasError}');
+                if (snapshot.hasError) {
+                  print('TeamFormationPage: Error: ${snapshot.error}');
+                }
+                
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
@@ -145,8 +159,51 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                   );
                 }
                 
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading data',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${snapshot.error}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              // Retry
+                            });
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
                 // Check if there is data available
                 bool hasData = snapshot.hasData && snapshot.data!.isNotEmpty;
+                print('TeamFormationPage: hasData: $hasData');
                 
                 if (!hasData) {
                   // Show only "Auction Day Awaits" widget when no data
