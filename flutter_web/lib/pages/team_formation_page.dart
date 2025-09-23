@@ -201,9 +201,12 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                   );
                 }
                 
-                // Check if there is data available
-                bool hasData = snapshot.hasData && snapshot.data!.isNotEmpty;
-                print('TeamFormationPage: hasData: $hasData');
+                // Check if there is data available with explicit null checking
+                final teamsData = snapshot.data;
+                bool hasData = snapshot.hasData && 
+                               teamsData != null && 
+                               teamsData.isNotEmpty;
+                print('TeamFormationPage: hasData: $hasData, dataType: ${teamsData.runtimeType}');
                 
                 if (!hasData) {
                   // Show only "Auction Day Awaits" widget when no data
@@ -647,23 +650,23 @@ class _TeamFormationPageState extends State<TeamFormationPage>
   }
 
   Widget _buildTeamCard(Map<String, dynamic> team, [String? category]) {
-    // Map Google Sheets data to UI expectations
-    final teamName = team['team_name'] ?? 'Unknown Team';
-    final teamId = team['team_id'] ?? '';
+    // Map Google Sheets data to UI expectations with explicit type casting
+    final teamName = (team['team_name'] ?? 'Unknown Team').toString();
+    final teamId = (team['team_id'] ?? '').toString();
     
-    // Use category-specific data if available, otherwise fall back to total data
+    // Use category-specific data if available, otherwise fall back to total data with type safety
     final playerCount = category != null 
-        ? (team['category_player_count'] ?? 0)
-        : (team['player_count'] ?? 0);
+        ? (int.tryParse((team['category_player_count'] ?? 0).toString()) ?? 0)
+        : (int.tryParse((team['player_count'] ?? 0).toString()) ?? 0);
     final spentBudget = category != null
-        ? (team['category_spent_budget'] ?? 0)
-        : (team['spent_budget'] ?? 0);
+        ? (int.tryParse((team['category_spent_budget'] ?? 0).toString()) ?? 0)
+        : (int.tryParse((team['spent_budget'] ?? 0).toString()) ?? 0);
     
-    // Proficiency counts
-    final advancedCount = team['advanced_count'] ?? 0;
-    final intermediatePlusCount = team['intermediate_plus_count'] ?? 0;
-    final intermediateCount = team['intermediate_count'] ?? 0;
-    final beginnerCount = team['beginner_count'] ?? 0;
+    // Proficiency counts with explicit type casting
+    final advancedCount = int.tryParse((team['advanced_count'] ?? 0).toString()) ?? 0;
+    final intermediatePlusCount = int.tryParse((team['intermediate_plus_count'] ?? 0).toString()) ?? 0;
+    final intermediateCount = int.tryParse((team['intermediate_count'] ?? 0).toString()) ?? 0;
+    final beginnerCount = int.tryParse((team['beginner_count'] ?? 0).toString()) ?? 0;
     
     // Generate a color based on team name
     final colors = [
@@ -956,11 +959,12 @@ class _TeamFormationPageState extends State<TeamFormationPage>
   }
 
   Widget _buildPlayerListTile(Map<String, dynamic> player, String? category) {
-    final playerName = player['name'] ?? 'Unknown Player';
-    final playerCategory = player['category'] ?? '';
-    final proficiency = player['proficiency'] ?? 'Not specified';
-    final basePrice = player['base_price'] ?? '0';
-    final status = player['status'] ?? '';
+    // Explicit type casting for player data to prevent type errors in production
+    final playerName = (player['name'] ?? 'Unknown Player').toString();
+    final playerCategory = (player['category'] ?? '').toString();
+    final proficiency = (player['proficiency'] ?? 'Not specified').toString();
+    final basePrice = (player['base_price'] ?? 0).toString();
+    final status = (player['status'] ?? '').toString();
     
     // Generate color based on category
     Color categoryColor;
@@ -1937,27 +1941,33 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     try {
       print('TeamFormationPage: Getting $category teams...');
       
-      // Get all teams and players
+      // Get all teams and players with explicit null safety
       final allTeams = await googleSheetsService.getTeams();
       final allPlayers = await googleSheetsService.getPlayers();
       
-      // Filter players by category
+      // Validate data is not empty
+      if (allTeams.isEmpty || allPlayers.isEmpty) {
+        print('TeamFormationPage: Empty data received from GoogleSheetsService');
+        return [];
+      }
+      
+      // Filter players by category with explicit type casting
       final categoryPlayers = allPlayers.where((player) {
-        final playerCategory = (player['category'] ?? '').toString().toLowerCase();
-        final targetCategory = category.toLowerCase();
+        final playerCategory = (player['category'] ?? '').toString().toLowerCase().trim();
+        final targetCategory = category.toLowerCase().trim();
         return playerCategory == targetCategory || 
                (targetCategory == 'men' && (playerCategory == 'male' || playerCategory == 'man')) ||
                (targetCategory == 'women' && (playerCategory == 'female' || playerCategory == 'woman')) ||
                (targetCategory == 'kids' && (playerCategory == 'children' || playerCategory == 'child'));
       }).toList();
       
-      // Calculate category-specific player counts for each team
+      // Calculate category-specific player counts for each team with type safety
       final teamsWithCategoryData = allTeams.map((team) {
-        final teamId = team['team_id']?.toString() ?? '';
+        final teamId = (team['team_id'] ?? '').toString().trim();
         
-        // Get players in this team for this category
+        // Get players in this team for this category with explicit type checking
         final teamCategoryPlayers = categoryPlayers.where((player) {
-          final playerTeamId = player['team_id']?.toString() ?? '';
+          final playerTeamId = (player['team_id'] ?? '').toString().trim();
           final playerStatus = (player['status'] ?? '').toString().trim();
           return playerTeamId == teamId && playerStatus.isNotEmpty && playerStatus.toLowerCase() != 'null';
         }).toList();
@@ -1994,12 +2004,12 @@ class _TeamFormationPageState extends State<TeamFormationPage>
           }
         }
         
-        // Use spent budget from teams sheet instead of calculating from player prices
+        // Use spent budget from teams sheet instead of calculating from player prices with type safety
         final categorySpentBudget = category.toLowerCase() == 'men' 
-            ? (team['spent_budget'] ?? 0)  // Use actual spent_budget from teams sheet for Men
+            ? (int.tryParse((team['spent_budget'] ?? 0).toString()) ?? 0)  // Use actual spent_budget from teams sheet for Men
             : 0;  // Women and Kids don't have budget tracking
         
-        return {
+        return <String, dynamic>{
           ...team,
           'category_player_count': categoryPlayersInTeam,
           'category_spent_budget': categorySpentBudget,

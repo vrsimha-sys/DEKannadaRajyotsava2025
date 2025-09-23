@@ -237,22 +237,22 @@ class GoogleSheetsService {
           }
         }
         
-        return {
-          'player_id': row.isNotEmpty ? row[0] : '',
-          'name': row.length > 1 ? row[1] : '',
-          'email': row.length > 2 ? row[2] : '',
-          'phone': row.length > 3 ? row[3] : '',
-          'flat_number': row.length > 4 ? row[4] : '',
-          'category': row.length > 5 ? row[5] : '',
-          'proficiency': row.length > 6 ? row[6] : '',
-          'emergency_contact': row.length > 7 ? row[7] : '',
-          'emergency_phone': row.length > 8 ? row[8] : '',
-          'registration_date': row.length > 9 ? row[9] : '',
-          'base_price': row.length > 10 ? int.tryParse(row[10]) ?? 0 : 0,
-          'status': row.length > 11 ? row[11] : '',
-          'team_id': row.length > 12 ? row[12] : '',
-          'created_at': row.length > 13 ? row[13] : '',
-          'photo_url': photoUrl, // Dynamic photo_url mapping
+        return <String, dynamic>{
+          'player_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
+          'name': (row.length > 1 ? row[1] : '').toString().trim(),
+          'email': (row.length > 2 ? row[2] : '').toString().trim(),
+          'phone': (row.length > 3 ? row[3] : '').toString().trim(),
+          'flat_number': (row.length > 4 ? row[4] : '').toString().trim(),
+          'category': (row.length > 5 ? row[5] : '').toString().trim(),
+          'proficiency': (row.length > 6 ? row[6] : '').toString().trim(),
+          'emergency_contact': (row.length > 7 ? row[7] : '').toString().trim(),
+          'emergency_phone': (row.length > 8 ? row[8] : '').toString().trim(),
+          'registration_date': (row.length > 9 ? row[9] : '').toString().trim(),
+          'base_price': row.length > 10 ? (int.tryParse(row[10].toString()) ?? 0) : 0,
+          'status': (row.length > 11 ? row[11] : '').toString().trim(),
+          'team_id': (row.length > 12 ? row[12] : '').toString().trim(),
+          'created_at': (row.length > 13 ? row[13] : '').toString().trim(),
+          'photo_url': photoUrl.toString().trim(), // Dynamic photo_url mapping
         };
       }).toList();
       
@@ -306,19 +306,19 @@ class GoogleSheetsService {
       final rows = data.skip(1).toList();
       print('GoogleSheetsService: Processing ${rows.length} data rows');
       
-      List<Map<String, dynamic>> teams = rows.map((row) => {
-        'team_id': row.isNotEmpty ? row[0] : '',
-        'team_name': row.length > 1 ? row[1] : '',
-        'captain_id': row.length > 2 ? row[2] : '',
-        'total_budget': row.length > 3 ? int.tryParse(row[3]) ?? 0 : 0,
-        'spent_budget': row.length > 4 ? int.tryParse(row[4]) ?? 0 : 0,
-        'remaining_budget': row.length > 5 ? int.tryParse(row[5]) ?? 0 : 0,
-        'player_count': row.length > 6 ? int.tryParse(row[6]) ?? 0 : 0,
-        'wins': row.length > 7 ? int.tryParse(row[7]) ?? 0 : 0,
-        'losses': row.length > 8 ? int.tryParse(row[8]) ?? 0 : 0,
-        'points': row.length > 9 ? int.tryParse(row[9]) ?? 0 : 0,
-        'status': row.length > 10 ? row[10] : '',
-        'created_at': row.length > 11 ? row[11] : '',
+      List<Map<String, dynamic>> teams = rows.map((row) => <String, dynamic>{
+        'team_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
+        'team_name': (row.length > 1 ? row[1] : '').toString().trim(),
+        'captain_id': (row.length > 2 ? row[2] : '').toString().trim(),
+        'total_budget': row.length > 3 ? (int.tryParse(row[3].toString()) ?? 0) : 0,
+        'spent_budget': row.length > 4 ? (int.tryParse(row[4].toString()) ?? 0) : 0,
+        'remaining_budget': row.length > 5 ? (int.tryParse(row[5].toString()) ?? 0) : 0,
+        'player_count': row.length > 6 ? (int.tryParse(row[6].toString()) ?? 0) : 0,
+        'wins': row.length > 7 ? (int.tryParse(row[7].toString()) ?? 0) : 0,
+        'losses': row.length > 8 ? (int.tryParse(row[8].toString()) ?? 0) : 0,
+        'points': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0,
+        'status': (row.length > 10 ? row[10] : '').toString().trim(),
+        'created_at': (row.length > 11 ? row[11] : '').toString().trim(),
       }).toList();
       
       // Filter out empty teams (where team_id is empty)
@@ -349,24 +349,24 @@ class GoogleSheetsService {
       // Skip header row (index 0)
       final rows = data.skip(1).toList();
       
-      List<Map<String, dynamic>> matches = rows.map((row) => {
-        'match_id': row.isNotEmpty ? row[0] : '',
-        'match_type': row.length > 1 ? row[1] : '',
-        'team1_id': row.length > 2 ? row[2] : '',
-        'team2_id': row.length > 3 ? row[3] : '',
-        'scheduled_date': row.length > 4 ? row[4] : '',
-        'scheduled_time': row.length > 5 ? row[5] : '',
-        'venue': row.length > 6 ? row[6] : '',
-        'status': row.length > 7 ? row[7] : '',
-        'team1_score': row.length > 8 ? int.tryParse(row[8]) ?? 0 : 0,
-        'team2_score': row.length > 9 ? int.tryParse(row[9]) ?? 0 : 0,
-        'winner_team_id': row.length > 10 ? row[10] : '',
-        'match_duration': row.length > 11 ? row[11] : '',
-        'referee': row.length > 12 ? row[12] : '',
-        'round_number': row.length > 13 ? int.tryParse(row[13]) ?? 0 : 0,
-        'group_name': row.length > 14 ? row[14] : '',
-        'notes': row.length > 15 ? row[15] : '',
-        'created_at': row.length > 16 ? row[16] : '',
+      List<Map<String, dynamic>> matches = rows.map((row) => <String, dynamic>{
+        'match_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
+        'match_type': (row.length > 1 ? row[1] : '').toString().trim(),
+        'team1_id': (row.length > 2 ? row[2] : '').toString().trim(),
+        'team2_id': (row.length > 3 ? row[3] : '').toString().trim(),
+        'scheduled_date': (row.length > 4 ? row[4] : '').toString().trim(),
+        'scheduled_time': (row.length > 5 ? row[5] : '').toString().trim(),
+        'venue': (row.length > 6 ? row[6] : '').toString().trim(),
+        'status': (row.length > 7 ? row[7] : '').toString().trim(),
+        'team1_score': row.length > 8 ? (int.tryParse(row[8].toString()) ?? 0) : 0,
+        'team2_score': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0,
+        'winner_team_id': (row.length > 10 ? row[10] : '').toString().trim(),
+        'match_duration': (row.length > 11 ? row[11] : '').toString().trim(),
+        'referee': (row.length > 12 ? row[12] : '').toString().trim(),
+        'round_number': row.length > 13 ? (int.tryParse(row[13].toString()) ?? 0) : 0,
+        'group_name': (row.length > 14 ? row[14] : '').toString().trim(),
+        'notes': (row.length > 15 ? row[15] : '').toString().trim(),
+        'created_at': (row.length > 16 ? row[16] : '').toString().trim(),
       }).toList();
       
       if (status != null) {
@@ -515,17 +515,17 @@ class GoogleSheetsService {
       final rows = data.skip(1).toList();
       print('GoogleSheetsService: Processing ${rows.length} auction history rows');
       
-      List<Map<String, dynamic>> auctionHistory = rows.map((row) => {
-        'auction_id': row.isNotEmpty ? row[0] : '',
-        'player_id': row.length > 1 ? row[1] : '',
-        'team_id': row.length > 2 ? row[2] : '',
-        'initial_bid_amount': row.length > 3 ? int.tryParse(row[3]) ?? 0 : 0, // New column
-        'bid_amount': row.length > 4 ? int.tryParse(row[4]) ?? 0 : 0, // Shifted by 1
-        'bid_type': row.length > 5 ? row[5] : '', // Shifted by 1
-        'is_winning_bid': row.length > 6 ? (row[6].toLowerCase() == 'true' || row[6] == '1') : false, // Shifted by 1
-        'auction_round': row.length > 7 ? int.tryParse(row[7]) ?? 1 : 1, // Shifted by 1
-        'bid_timestamp': row.length > 8 ? row[8] : '', // Shifted by 1
-        'auctioneer_notes': row.length > 9 ? row[9] : '', // Shifted by 1
+      List<Map<String, dynamic>> auctionHistory = rows.map((row) => <String, dynamic>{
+        'auction_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
+        'player_id': (row.length > 1 ? row[1] : '').toString().trim(),
+        'team_id': (row.length > 2 ? row[2] : '').toString().trim(),
+        'initial_bid_amount': row.length > 3 ? (int.tryParse(row[3].toString()) ?? 0) : 0, // New column
+        'bid_amount': row.length > 4 ? (int.tryParse(row[4].toString()) ?? 0) : 0, // Shifted by 1
+        'bid_type': (row.length > 5 ? row[5] : '').toString().trim(), // Shifted by 1
+        'is_winning_bid': row.length > 6 ? (row[6].toString().toLowerCase() == 'true' || row[6].toString() == '1') : false, // Shifted by 1
+        'auction_round': row.length > 7 ? (int.tryParse(row[7].toString()) ?? 1) : 1, // Shifted by 1
+        'bid_timestamp': (row.length > 8 ? row[8] : '').toString().trim(), // Shifted by 1
+        'auctioneer_notes': (row.length > 9 ? row[9] : '').toString().trim(), // Shifted by 1
       }).toList();
       
       // Filter out empty entries
