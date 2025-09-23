@@ -11,59 +11,128 @@ class GoogleSheetsService {
   // You can find the GID in the URL when you view each sheet tab
   static const Map<String, String> _sheetGids = {
     'Players': '0',           // First sheet (Players)
-    'Teams': '1733072859',    // Teams sheet
-    'Auction_History': '2',   // Auction_History sheet  
-    'Matches': '3',           // Matches sheet
-    'Live_Updates': '4',      // Live_Updates sheet
-    'Tournament_Stats': '5',  // Tournament_Stats sheet
-    'Tournament_Config': '6', // Tournament_Config sheet
+    'Teams': '1291526164',    // Teams sheet
+    'Auction_History': '1603832257',   // Auction_History sheet  
+    'Matches': '424738768',           // Matches sheet
+    'Live_Updates': '467423031',      // Live_Updates sheet
+    'Tournament_Stats': '1466958466',  // Tournament_Stats sheet
+    'Tournament_Config': '780447557', // Tournament_Config sheet
   };
 
   // Debug method to test Google Sheets connection
   Future<void> testConnection() async {
     print('=== Testing Google Sheets Connection ===');
     print('Spreadsheet ID: $spreadsheetId');
+    print('Base URL: $_baseUrl');
     
     for (String sheetName in _sheetGids.keys) {
       final gid = _sheetGids[sheetName];
       final url = '$_baseUrl$gid';
-      print('Testing $sheetName sheet - URL: $url');
+      print('---');
+      print('Testing $sheetName sheet:');
+      print('  GID: $gid');
+      print('  URL: $url');
       
       try {
         final response = await http.get(Uri.parse(url));
-        print('$sheetName - Status: ${response.statusCode}');
+        print('  Status: ${response.statusCode}');
+        
         if (response.statusCode == 200) {
-          final lines = response.body.split('\n').where((line) => line.trim().isNotEmpty).toList();
-          print('$sheetName - Data rows: ${lines.length}');
-          if (lines.isNotEmpty) {
-            print('$sheetName - Header row: ${lines[0]}');
-            // Look for Harish Nayak in Players sheet
-            if (sheetName == 'Players' && lines.length > 1) {
-              for (int i = 1; i < lines.length; i++) {
-                if (lines[i].toLowerCase().contains('harish')) {
-                  print('Found Harish row: ${lines[i]}');
-                  final columns = _parseCsvLine(lines[i]);
-                  print('Harish columns count: ${columns.length}');
-                  for (int j = 0; j < columns.length; j++) {
-                    print('Column $j: ${columns[j]}');
-                  }
-                  break;
+          if (response.body.contains('Sign in') || response.body.contains('authentication')) {
+            print('  ERROR: Authentication required - sheet is not public!');
+          } else {
+            final lines = response.body.split('\n');
+            final nonEmptyLines = lines.where((line) => line.trim().isNotEmpty).toList();
+            print('  SUCCESS: ${nonEmptyLines.length} rows of data');
+            if (nonEmptyLines.isNotEmpty) {
+              print('  Header: ${nonEmptyLines[0]}');
+            }
+            if (nonEmptyLines.length > 1) {
+              print('  First data row: ${nonEmptyLines[1]}');
+            }
+            
+            // Special handling for Teams sheet
+            if (sheetName == 'Teams') {
+              print('  === TEAMS SHEET ANALYSIS ===');
+              if (nonEmptyLines.length <= 1) {
+                print('  WARNING: Teams sheet has no data rows (only header or empty)');
+              } else {
+                print('  Teams sheet has ${nonEmptyLines.length - 1} data rows');
+                // Show first few data rows
+                for (int i = 1; i < nonEmptyLines.length && i <= 3; i++) {
+                  print('  Data row ${i}: ${nonEmptyLines[i]}');
                 }
               }
             }
           }
         } else {
-          print('$sheetName - Error: ${response.statusCode} - ${response.body}');
+          print('  ERROR: HTTP ${response.statusCode}');
+          print('  Response body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
         }
       } catch (e) {
-        print('$sheetName - Exception: $e');
+        print('  EXCEPTION: $e');
       }
-      print('---');
     }
-    print('=== End Test ===');
+    print('=== End Connection Test ===');
   }
 
-  // Generic method to read sheet data as CSV
+  // Helper method to test different GIDs for Teams sheet
+  Future<void> testTeamsGIDs() async {
+    print('=== Testing Different GIDs for Teams Sheet ===');
+    
+    // Common GID patterns to try
+    List<String> possibleGIDs = [
+      '1733072859', // Current GID
+      '0',          // First sheet
+      '1',          // Second sheet  
+      '2',          // Third sheet
+      '3',          // Fourth sheet
+      '4',          // Fifth sheet
+      '5',          // Sixth sheet
+      '1733072858', // One less
+      '1733072860', // One more
+    ];
+    
+    for (String testGID in possibleGIDs) {
+      final url = '$_baseUrl$testGID';
+      print('---');
+      print('Testing GID: $testGID');
+      print('URL: $url');
+      
+      try {
+        final response = await http.get(Uri.parse(url));
+        print('Status: ${response.statusCode}');
+        
+        if (response.statusCode == 200) {
+          if (response.body.contains('Sign in') || response.body.contains('authentication')) {
+            print('ERROR: Authentication required');
+          } else {
+            final lines = response.body.split('\n');
+            final nonEmptyLines = lines.where((line) => line.trim().isNotEmpty).toList();
+            print('SUCCESS: ${nonEmptyLines.length} rows');
+            
+            if (nonEmptyLines.isNotEmpty) {
+              final header = nonEmptyLines[0].toLowerCase();
+              print('Header: ${nonEmptyLines[0]}');
+              
+              // Check if this looks like a Teams sheet
+              if (header.contains('team') || header.contains('captain') || header.contains('budget')) {
+                print('🎯 POTENTIAL TEAMS SHEET FOUND!');
+                if (nonEmptyLines.length > 1) {
+                  print('Sample data: ${nonEmptyLines[1]}');
+                }
+              }
+            }
+          }
+        } else {
+          print('ERROR: HTTP ${response.statusCode}');
+        }
+      } catch (e) {
+        print('EXCEPTION: $e');
+      }
+    }
+    print('=== End GID Test ===');
+  }
   Future<List<List<String>>> readSheetData(String sheetName) async {
     try {
       final gid = _sheetGids[sheetName];
@@ -215,14 +284,27 @@ class GoogleSheetsService {
   // TEAMS MANAGEMENT
   Future<List<Map<String, dynamic>>> getTeams() async {
     try {
+      print('GoogleSheetsService: Starting getTeams()');
       final data = await readSheetData('Teams');
+      print('GoogleSheetsService: Raw data length: ${data.length}');
+      
       if (data.isEmpty || data.length <= 1) {
-        print('No team data found in Google Sheets, returning empty list');
+        print('GoogleSheetsService: No team data found - data.length = ${data.length}');
+        if (data.isNotEmpty) {
+          print('GoogleSheetsService: Header row: ${data[0]}');
+        }
         return []; // Return empty list to show "Auction Day Awaits" message
+      }
+      
+      // Log the first few rows for debugging
+      print('GoogleSheetsService: First 3 rows of raw data:');
+      for (int i = 0; i < data.length && i < 3; i++) {
+        print('GoogleSheetsService: Row $i: ${data[i]}');
       }
       
       // Skip header row (index 0)
       final rows = data.skip(1).toList();
+      print('GoogleSheetsService: Processing ${rows.length} data rows');
       
       List<Map<String, dynamic>> teams = rows.map((row) => {
         'team_id': row.isNotEmpty ? row[0] : '',
@@ -239,10 +321,18 @@ class GoogleSheetsService {
         'created_at': row.length > 11 ? row[11] : '',
       }).toList();
       
-      print('Returning ${teams.length} teams from Google Sheets');
+      // Filter out empty teams (where team_id is empty)
+      teams = teams.where((team) => team['team_id'].toString().trim().isNotEmpty).toList();
+      
+      print('GoogleSheetsService: Final teams count after filtering: ${teams.length}');
+      for (int i = 0; i < teams.length && i < 3; i++) {
+        print('GoogleSheetsService: Team ${i + 1}: ${teams[i]}');
+      }
+      
       return teams;
     } catch (e) {
-      print('Error fetching teams: $e');
+      print('GoogleSheetsService: Error fetching teams: $e');
+      print('GoogleSheetsService: Stack trace: ${StackTrace.current}');
       return []; // Return empty list to show "Auction Day Awaits" message
     }
   }
@@ -407,6 +497,132 @@ class GoogleSheetsService {
     // When real data is available in Google Sheets, this method won't be called
     print('Returning empty matches list - Battle yet to Start');
     return [];
+  }
+
+  // AUCTION HISTORY MANAGEMENT
+  Future<List<Map<String, dynamic>>> getAuctionHistory() async {
+    try {
+      print('GoogleSheetsService: Starting getAuctionHistory()');
+      final data = await readSheetData('Auction_History');
+      print('GoogleSheetsService: Auction history raw data length: ${data.length}');
+      
+      if (data.isEmpty || data.length <= 1) {
+        print('GoogleSheetsService: No auction history data found');
+        return [];
+      }
+      
+      // Skip header row (index 0)
+      final rows = data.skip(1).toList();
+      print('GoogleSheetsService: Processing ${rows.length} auction history rows');
+      
+      List<Map<String, dynamic>> auctionHistory = rows.map((row) => {
+        'auction_id': row.isNotEmpty ? row[0] : '',
+        'player_id': row.length > 1 ? row[1] : '',
+        'team_id': row.length > 2 ? row[2] : '',
+        'initial_bid_amount': row.length > 3 ? int.tryParse(row[3]) ?? 0 : 0, // New column
+        'bid_amount': row.length > 4 ? int.tryParse(row[4]) ?? 0 : 0, // Shifted by 1
+        'bid_type': row.length > 5 ? row[5] : '', // Shifted by 1
+        'is_winning_bid': row.length > 6 ? (row[6].toLowerCase() == 'true' || row[6] == '1') : false, // Shifted by 1
+        'auction_round': row.length > 7 ? int.tryParse(row[7]) ?? 1 : 1, // Shifted by 1
+        'bid_timestamp': row.length > 8 ? row[8] : '', // Shifted by 1
+        'auctioneer_notes': row.length > 9 ? row[9] : '', // Shifted by 1
+      }).toList();
+      
+      // Filter out empty entries
+      auctionHistory = auctionHistory.where((entry) => 
+        entry['auction_id'].toString().trim().isNotEmpty
+      ).toList();
+      
+      print('GoogleSheetsService: Final auction history count: ${auctionHistory.length}');
+      return auctionHistory;
+    } catch (e) {
+      print('GoogleSheetsService: Error fetching auction history: $e');
+      return [];
+    }
+  }
+
+  // Get players not yet sold (for auction queue)
+  Future<List<Map<String, dynamic>>> getUnsoldPlayers() async {
+    try {
+      print('GoogleSheetsService: Getting unsold players...');
+      
+      // Get all players
+      final allPlayers = await getPlayers();
+      print('GoogleSheetsService: Total players: ${allPlayers.length}');
+      
+      // Get auction history to find sold players
+      final auctionHistory = await getAuctionHistory();
+      print('GoogleSheetsService: Auction history entries: ${auctionHistory.length}');
+      
+      // Get player IDs that have winning bids
+      final soldPlayerIds = auctionHistory
+          .where((entry) => entry['is_winning_bid'] == true)
+          .map((entry) => entry['player_id'].toString())
+          .toSet();
+      
+      print('GoogleSheetsService: Sold player IDs: $soldPlayerIds');
+      
+      // Filter out sold players
+      final unsoldPlayers = allPlayers.where((player) => 
+        !soldPlayerIds.contains(player['player_id'].toString())
+      ).toList();
+      
+      print('GoogleSheetsService: Unsold players: ${unsoldPlayers.length}');
+      return unsoldPlayers;
+    } catch (e) {
+      print('GoogleSheetsService: Error getting unsold players: $e');
+      return [];
+    }
+  }
+
+  // Calculate auction statistics
+  Future<Map<String, dynamic>> getAuctionStats() async {
+    try {
+      print('GoogleSheetsService: Calculating auction stats...');
+      
+      final allPlayers = await getPlayers();
+      final auctionHistory = await getAuctionHistory();
+      final teams = await getTeams();
+      
+      // Calculate statistics
+      final totalPlayers = allPlayers.length;
+      final soldPlayers = auctionHistory
+          .where((entry) => entry['is_winning_bid'] == true)
+          .map((entry) => entry['player_id'])
+          .toSet()
+          .length;
+      
+      final winningBids = auctionHistory
+          .where((entry) => entry['is_winning_bid'] == true)
+          .map((entry) => entry['bid_amount'] as int)
+          .toList();
+      
+      final totalRevenue = winningBids.fold<int>(0, (sum, amount) => sum + amount);
+      final avgPrice = winningBids.isNotEmpty ? (totalRevenue / winningBids.length).round() : 0;
+      final highestBid = winningBids.isNotEmpty ? winningBids.reduce((a, b) => a > b ? a : b) : 0;
+      
+      final stats = {
+        'total_players': totalPlayers,
+        'players_sold': soldPlayers,
+        'avg_price': avgPrice,
+        'teams_formed': teams.length,
+        'highest_bid': highestBid,
+        'total_revenue': totalRevenue,
+      };
+      
+      print('GoogleSheetsService: Auction stats: $stats');
+      return stats;
+    } catch (e) {
+      print('GoogleSheetsService: Error calculating auction stats: $e');
+      return {
+        'total_players': 0,
+        'players_sold': 0,
+        'avg_price': 0,
+        'teams_formed': 0,
+        'highest_bid': 0,
+        'total_revenue': 0,
+      };
+    }
   }
 
   Map<String, dynamic> _getDummyTournamentConfig() {

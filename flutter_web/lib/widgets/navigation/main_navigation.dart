@@ -32,7 +32,7 @@ class _MainNavigationState extends State<MainNavigation> {
     ),
     const BottomNavigationBarItem(
       icon: Icon(Icons.groups),
-      label: 'Auction',
+      label: 'Selection',
     ),
     const BottomNavigationBarItem(
       icon: Icon(Icons.sports),
@@ -85,7 +85,7 @@ class _MainNavigationState extends State<MainNavigation> {
         actions: [
           _buildDesktopNavButton('Home', 0, Icons.home),
           _buildDesktopNavButton('Players', 1, Icons.people),
-          _buildDesktopNavButton('Auction', 2, Icons.groups),
+          _buildDesktopNavButton('Selection', 2, Icons.groups),
           _buildDesktopNavButton('Matches', 3, Icons.sports),
           const SizedBox(width: 20),
         ],

@@ -245,11 +245,14 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
   }
 
   Widget _buildPlayerCard(Map<String, dynamic> player, String proficiency) {
+    final status = player['status']?.toString().trim() ?? '';
+    final isStatusNotBlank = status.isNotEmpty && status.toLowerCase() != 'null';
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        padding: const EdgeInsets.all(16), // Increased padding since we have more space
+        padding: const EdgeInsets.all(12), // Reduced padding to give more space
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
@@ -267,33 +270,32 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start, // Changed from center to start
+          mainAxisSize: MainAxisSize.min, // Added to minimize space usage
           children: [
             // Player Avatar with photo support
             _buildPlayerAvatar(player, proficiency),
-            const SizedBox(height: 16), // Increased spacing
+            const SizedBox(height: 12), // Reduced spacing
 
             // Player Name
-            Flexible(
-              child: Text(
-                player['name'] ?? 'Unknown',
-                style: const TextStyle(
-                  fontSize: 16, // Increased font size
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 220, 20, 20),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            Text(
+              player['name'] ?? 'Unknown',
+              style: const TextStyle(
+                fontSize: 14, // Reduced font size to fit more content
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 220, 20, 20),
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 12), // Increased spacing
+            const SizedBox(height: 8), // Reduced spacing
 
             // Flat Number
             Text(
               'Flat: ${player['flat_number'] ?? 'N/A'}',
               style: TextStyle(
-                fontSize: 16, // Increased font size for better readability
+                fontSize: 13, // Reduced font size
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
@@ -301,6 +303,54 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            
+            // Additional information based on status and category
+            if (isStatusNotBlank) ...[
+              const SizedBox(height: 6), // Reduced spacing
+              
+              // Status
+              Text(
+                'Status: $status',
+                style: TextStyle(
+                  fontSize: 12, // Reduced font size
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              // For Men: Show Selling Price only when status is "Sold"
+              if (widget.category.toLowerCase() == 'men' && status.toLowerCase() == 'sold') ...[
+                const SizedBox(height: 3), // Reduced spacing
+                Text(
+                  'Price: ${player['selling_price'] ?? 'N/A'} Pnts', // Shortened label
+                  style: TextStyle(
+                    fontSize: 12, // Reduced font size
+                    color: Colors.green[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              
+              // Team Name (for all categories when status is not blank)
+              const SizedBox(height: 3), // Reduced spacing
+              Text(
+                'Team: ${player['team_name'] ?? 'N/A'}',
+                style: TextStyle(
+                  fontSize: 12, // Reduced font size
+                  color: Colors.blue[600],
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),
@@ -381,70 +431,29 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
   }
 
   Widget _buildPlayerAvatar(Map<String, dynamic> player, String proficiency) {
-    // Enhanced null safety and validation
-    final photoUrlRaw = player['photo_url']?.toString();
-    final photoUrl = photoUrlRaw?.trim();
     final playerName = player['name'] ?? 'Unknown';
     
-    // Debug logging for Harish Nayak specifically
-    if (playerName.toLowerCase().contains('harish')) {
-      print('=== DEBUG: Harish Nayak Photo Data ===');
-      print('Player name: $playerName');
-      print('Raw photo_url: $photoUrlRaw');
-      print('Trimmed photo_url: $photoUrl');
-      print('Player data keys: ${player.keys.toList()}');
-      print('===================================');
+    // Extract initials from player name
+    final nameParts = playerName.trim().split(' ');
+    String initials = '';
+    
+    if (nameParts.isNotEmpty) {
+      // Take first letter of first name
+      if (nameParts[0].isNotEmpty) {
+        initials += nameParts[0][0].toUpperCase();
+      }
+      
+      // Take first letter of last name if available
+      if (nameParts.length > 1 && nameParts[nameParts.length - 1].isNotEmpty) {
+        initials += nameParts[nameParts.length - 1][0].toUpperCase();
+      }
     }
     
-    final hasValidPhoto = photoUrl != null && 
-                         photoUrl.isNotEmpty && 
-                         photoUrl != 'null' && 
-                         photoUrl != 'N/A' &&
-                         photoUrl.startsWith('http');
-
-    if (playerName.toLowerCase().contains('harish')) {
-      print('Harish hasValidPhoto: $hasValidPhoto');
+    // Fallback to 'U' if no valid initials
+    if (initials.isEmpty) {
+      initials = 'U';
     }
 
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: hasValidPhoto ? null : LinearGradient(
-          colors: [
-            _getProficiencyColor(proficiency),
-            _getProficiencyColor(proficiency).withOpacity(0.7),
-          ],
-        ),
-        border: Border.all(
-          color: _getProficiencyColor(proficiency),
-          width: 2,
-        ),
-      ),
-      child: ClipOval(
-        child: hasValidPhoto
-            ? Image.network(
-                _convertToDirectImageUrl(photoUrl),
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return _buildPlaceholderAvatar(proficiency, isLoading: true);
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  print('Error loading image for $playerName: $error');
-                  if (playerName.toLowerCase().contains('harish')) {
-                    print('Harish image URL that failed: ${_convertToDirectImageUrl(photoUrl)}');
-                  }
-                  return _buildPlaceholderAvatar(proficiency);
-                },
-              )
-            : _buildPlaceholderAvatar(proficiency),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderAvatar(String proficiency, {bool isLoading = false}) {
     return Container(
       width: 60,
       height: 60,
@@ -456,66 +465,21 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
             _getProficiencyColor(proficiency).withOpacity(0.7),
           ],
         ),
+        border: Border.all(
+          color: _getProficiencyColor(proficiency),
+          width: 2,
+        ),
       ),
-      child: isLoading 
-          ? const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 30,
-            ),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
-  }
-
-  String _convertToDirectImageUrl(String originalUrl) {
-    try {
-      // Additional validation
-      if (originalUrl.isEmpty || !originalUrl.startsWith('http')) {
-        return originalUrl;
-      }
-      
-      // Test with Harish's specific URL
-      if (originalUrl.contains('1LaJCkLQWaJkHDYrzBAUNFLDGT3vvht1M')) {
-        print('Converting Harish URL: $originalUrl');
-      }
-      
-      // Convert Google Drive sharing URL to direct image URL
-      if (originalUrl.contains('drive.google.com/file/d/')) {
-        final parts = originalUrl.split('/d/');
-        if (parts.length > 1) {
-          final fileId = parts[1].split('/')[0];
-          if (fileId.isNotEmpty) {
-            final directUrl = 'https://drive.google.com/uc?export=view&id=$fileId';
-            if (originalUrl.contains('1LaJCkLQWaJkHDYrzBAUNFLDGT3vvht1M')) {
-              print('Harish converted URL: $directUrl');
-            }
-            return directUrl;
-          }
-        }
-      }
-      // Convert Google Drive sharing URLs with different formats
-      else if (originalUrl.contains('drive.google.com') && originalUrl.contains('id=')) {
-        try {
-          final uri = Uri.parse(originalUrl);
-          final fileId = uri.queryParameters['id'];
-          if (fileId != null && fileId.isNotEmpty) {
-            return 'https://drive.google.com/uc?export=view&id=$fileId';
-          }
-        } catch (e) {
-          print('Error parsing Google Drive URL: $e');
-        }
-      }
-      
-      // Return original URL if it's already in the correct format or from another source
-      return originalUrl;
-    } catch (e) {
-      print('Error converting image URL: $e');
-      return originalUrl;
-    }
   }
 }

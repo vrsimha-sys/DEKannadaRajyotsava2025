@@ -13,13 +13,33 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final GoogleSheetsService _googleSheetsService = GoogleSheetsService();
+  
+  // Future variables to enable refresh functionality
+  late Future<List<Map<String, dynamic>>> _menPlayersFuture;
+  late Future<List<Map<String, dynamic>>> _womenPlayersFuture;
+  late Future<List<Map<String, dynamic>>> _kidsPlayersFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Initialize futures
+    _initializeFutures();
     // Test Google Sheets connection
     _testGoogleSheetsConnection();
+  }
+
+  void _initializeFutures() {
+    _menPlayersFuture = _getMenPlayers();
+    _womenPlayersFuture = _getWomenPlayers();
+    _kidsPlayersFuture = _getKidsPlayers();
+  }
+
+  void _refreshAllData() {
+    setState(() {
+      // Create new Future instances to force refresh
+      _initializeFutures();
+    });
   }
 
   void _testGoogleSheetsConnection() async {
@@ -97,6 +117,23 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
                               textAlign: TextAlign.center,
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          // Refresh button positioned under "Registered Participants"
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              onPressed: _refreshAllData,
+                              icon: const Icon(
+                                Icons.refresh,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              tooltip: 'Refresh Player Data',
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -139,7 +176,7 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
               controller: _tabController,
               children: [
                 FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getMenPlayers(),
+                  future: _menPlayersFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -157,7 +194,7 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
                   },
                 ),
                 FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getWomenPlayers(),
+                  future: _womenPlayersFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -175,7 +212,7 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
                   },
                 ),
                 FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getKidsPlayers(),
+                  future: _kidsPlayersFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -204,10 +241,13 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
   Future<List<Map<String, dynamic>>> _getMenPlayers() async {
     try {
       final players = await _googleSheetsService.getPlayers();
-      return players.where((player) => 
+      final menPlayers = players.where((player) => 
         player['category']?.toString().toLowerCase() == 'men' ||
         player['category']?.toString().toLowerCase() == 'male'
       ).toList();
+      
+      // Enrich player data with selling price and team name
+      return await _enrichPlayerData(menPlayers);
     } catch (e) {
       print('Error loading men players: $e');
       return [];
@@ -217,10 +257,13 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
   Future<List<Map<String, dynamic>>> _getWomenPlayers() async {
     try {
       final players = await _googleSheetsService.getPlayers();
-      return players.where((player) => 
+      final womenPlayers = players.where((player) => 
         player['category']?.toString().toLowerCase() == 'women' ||
         player['category']?.toString().toLowerCase() == 'female'
       ).toList();
+      
+      // Enrich player data with selling price and team name
+      return await _enrichPlayerData(womenPlayers);
     } catch (e) {
       print('Error loading women players: $e');
       return [];
@@ -230,13 +273,66 @@ class _PlayerRosterPageState extends State<PlayerRosterPage>
   Future<List<Map<String, dynamic>>> _getKidsPlayers() async {
     try {
       final players = await _googleSheetsService.getPlayers();
-      return players.where((player) => 
+      final kidsPlayers = players.where((player) => 
         player['category']?.toString().toLowerCase() == 'kids' ||
         player['category']?.toString().toLowerCase() == 'children'
       ).toList();
+      
+      // Enrich player data with selling price and team name
+      return await _enrichPlayerData(kidsPlayers);
     } catch (e) {
       print('Error loading kids players: $e');
       return [];
+    }
+  }
+
+  // Helper method to enrich player data with selling price and team name
+  Future<List<Map<String, dynamic>>> _enrichPlayerData(List<Map<String, dynamic>> players) async {
+    try {
+      // Get auction history and teams data
+      final auctionHistory = await _googleSheetsService.getAuctionHistory();
+      final teams = await _googleSheetsService.getTeams();
+      
+      // Create maps for quick lookup
+      final Map<String, int> playerSellingPrices = {};
+      final Map<String, String> teamNames = {};
+      
+      // Build selling price map from auction history (winning bids only)
+      for (var bid in auctionHistory) {
+        if (bid['is_winning_bid'] == true) {
+          final playerId = bid['player_id']?.toString() ?? '';
+          final bidAmount = bid['bid_amount'] ?? 0;
+          if (playerId.isNotEmpty) {
+            playerSellingPrices[playerId] = bidAmount;
+          }
+        }
+      }
+      
+      // Build team names map
+      for (var team in teams) {
+        final teamId = team['team_id']?.toString() ?? '';
+        final teamName = team['team_name']?.toString() ?? '';
+        if (teamId.isNotEmpty) {
+          teamNames[teamId] = teamName;
+        }
+      }
+      
+      // Enrich each player with selling price and team name
+      return players.map((player) {
+        final playerId = player['player_id']?.toString() ?? '';
+        final teamId = player['team_id']?.toString() ?? '';
+        
+        return {
+          ...player,
+          'selling_price': playerSellingPrices[playerId],
+          'team_name': teamNames[teamId],
+        };
+      }).toList();
+      
+    } catch (e) {
+      print('Error enriching player data: $e');
+      // Return original players if enrichment fails
+      return players;
     }
   }
 }
