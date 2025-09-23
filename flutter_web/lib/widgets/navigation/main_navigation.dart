@@ -43,11 +43,17 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isDesktop = screenWidth > 800;
+    final isLandscape = screenWidth > screenHeight;
+    
+    // For mobile landscape (width < 800 but in landscape), use drawer instead of bottom nav
+    final showBottomNav = !isDesktop && !isLandscape;
+    final showAppBar = isDesktop || isLandscape;
 
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: isDesktop ? null : BottomNavigationBar(
+      bottomNavigationBar: showBottomNav ? BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -63,11 +69,11 @@ class _MainNavigationState extends State<MainNavigation> {
         selectedFontSize: 12,
         unselectedFontSize: 12,
         items: _navItems,
-      ),
-      drawer: isDesktop ? null : Drawer(
+      ) : null,
+      drawer: !isDesktop ? Drawer(
         child: _buildDrawerContent(),
-      ),
-      appBar: isDesktop ? AppBar(
+      ) : null,
+      appBar: showAppBar ? AppBar(
         backgroundColor: const Color.fromARGB(255, 247, 183, 7),
         elevation: 0,
         title: Flexible(
@@ -82,13 +88,13 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ),
         ),
-        actions: [
+        actions: isDesktop ? [
           _buildDesktopNavButton('Home', 0, Icons.home),
           _buildDesktopNavButton('Players', 1, Icons.people),
           _buildDesktopNavButton('Selection', 2, Icons.groups),
           _buildDesktopNavButton('Matches', 3, Icons.sports),
           const SizedBox(width: 20),
-        ],
+        ] : null,
       ) : null,
     );
   }

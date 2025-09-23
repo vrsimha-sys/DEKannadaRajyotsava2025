@@ -55,18 +55,21 @@ class _TeamFormationPageState extends State<TeamFormationPage>
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isDesktop = screenWidth > 800;
+    final isLandscape = screenWidth > screenHeight;
+    final isMobileLandscape = isLandscape && screenWidth <= 800;
 
-    print('TeamFormationPage: Build method called, isDesktop: $isDesktop');
+    print('TeamFormationPage: Build method called, isDesktop: $isDesktop, isLandscape: $isLandscape');
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Column(
         children: [
-          // Header Section
+          // Header Section - Reduced padding for mobile landscape
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(isDesktop ? 40 : 20),
+            padding: EdgeInsets.all(isMobileLandscape ? 10 : (isDesktop ? 40 : 20)),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -79,61 +82,61 @@ class _TeamFormationPageState extends State<TeamFormationPage>
             ),
             child: Column(
               children: [
-                Stack(
+                // Header content
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Team Formation',
-                          style: TextStyle(
-                            fontSize: isDesktop ? 32 : 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Player Selection & Team Building',
-                          style: TextStyle(
-                            fontSize: isDesktop ? 16 : 14,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Sunday, 28 September, 2025',
-                          style: TextStyle(
-                            fontSize: isDesktop ? 14 : 12,
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.w300,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                    // Add refresh button
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        onPressed: () {
-                          print('TeamFormationPage: Refresh button pressed');
-                          setState(() {
-                            // This will trigger a rebuild and re-fetch the data
-                          });
-                        },
-                        icon: Icon(
-                          Icons.refresh,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        tooltip: 'Refresh Teams Data',
+                    Text(
+                      'Team Formation',
+                      style: TextStyle(
+                        fontSize: isMobileLandscape ? 18 : (isDesktop ? 32 : 24),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: isMobileLandscape ? 4 : 8),
+                    Text(
+                      'Player Selection & Team Building',
+                      style: TextStyle(
+                        fontSize: isMobileLandscape ? 12 : (isDesktop ? 16 : 14),
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: isMobileLandscape ? 2 : 4),
+                    Text(
+                      'Sunday, 28 September, 2025',
+                      style: TextStyle(
+                        fontSize: isMobileLandscape ? 10 : (isDesktop ? 14 : 12),
+                        color: Colors.white.withOpacity(0.8),
+                        fontWeight: FontWeight.w300,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
+                ),
+                SizedBox(height: isMobileLandscape ? 8 : 12),
+                // Refresh button positioned below header text and centered
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      print('TeamFormationPage: Refresh button pressed');
+                      setState(() {
+                        // This will trigger a rebuild and re-fetch the data
+                      });
+                    },
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    tooltip: 'Refresh Teams Data',
+                  ),
                 ),
               ],
             ),
