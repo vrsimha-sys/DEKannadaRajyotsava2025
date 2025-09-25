@@ -106,7 +106,7 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                     ),
                     SizedBox(height: isMobileLandscape ? 2 : 4),
                     Text(
-                      'Sunday, 28 September, 2025',
+                      'Friday, 26 September, 2025 @ 9:00 PM',
                       style: TextStyle(
                         fontSize: isMobileLandscape ? 10 : (isDesktop ? 14 : 12),
                         color: Colors.white.withOpacity(0.8),
@@ -723,7 +723,7 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                                 ? '$category: ${spentBudget.toString()} Pnts spent'
                                 : '${spentBudget.toString()} Pnts spent',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: const Color.fromARGB(255, 40, 1, 85),
                               fontSize: 12,
                             ),
                           )
@@ -776,14 +776,30 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                 valueColor: AlwaysStoppedAnimation<Color>(teamColor),
               ),
               const SizedBox(height: 8),
-              if (category?.toLowerCase() == 'men')
+              if (category?.toLowerCase() == 'men') ...[
                 Text(
-                  'Budget: ${(team['remaining_budget'] ?? 0).toString()} Pnts left',
+                  'Base Pool: ${(team['total_base_pool'] ?? 0).toString()} Pnts',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: const Color.fromARGB(255, 245, 70, 1),
                     fontSize: 12,
                   ),
                 ),
+                Text(
+                  'Bidding Pool: ${(team['remaining_budget'] ?? 0).toString()} Pnts left',
+                  style: TextStyle(
+                    color: const Color.fromARGB(255, 3, 70, 255),
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Total Budget: ${((team['spent_budget'] ?? 0) + (team['remaining_budget'] ?? 0) + (team['total_base_pool'] ?? 0)).toString()} Pnts',
+                  style: TextStyle(
+                    color: const Color.fromARGB(255, 2, 122, 8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

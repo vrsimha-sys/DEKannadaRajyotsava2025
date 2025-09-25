@@ -307,6 +307,7 @@ class GoogleSheetsService {
       print('GoogleSheetsService: Processing ${rows.length} data rows');
       
       List<Map<String, dynamic>> teams = rows.map((row) => <String, dynamic>{
+        // Basic team information
         'team_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
         'team_name': (row.length > 1 ? row[1] : '').toString().trim(),
         'captain_id': (row.length > 2 ? row[2] : '').toString().trim(),
@@ -319,6 +320,33 @@ class GoogleSheetsService {
         'points': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0,
         'status': (row.length > 10 ? row[10] : '').toString().trim(),
         'created_at': (row.length > 11 ? row[11] : '').toString().trim(),
+        
+        // Advanced players (columns 12-15)
+        'required_number_of_adv': row.length > 12 ? (int.tryParse(row[12].toString()) ?? 0) : 0,
+        'number_of_adv_bought': row.length > 13 ? (int.tryParse(row[13].toString()) ?? 0) : 0,
+        'base_price_per_adv': row.length > 14 ? (double.tryParse(row[14].toString()) ?? 0.0) : 0.0,
+        'total_base_price_adv': row.length > 15 ? (double.tryParse(row[15].toString()) ?? 0.0) : 0.0,
+        
+        // Intermediate+ players (columns 16-19)
+        'required_number_of_int_plus': row.length > 16 ? (int.tryParse(row[16].toString()) ?? 0) : 0,
+        'number_of_int_plus_bought': row.length > 17 ? (int.tryParse(row[17].toString()) ?? 0) : 0,
+        'base_price_per_int_plus': row.length > 18 ? (double.tryParse(row[18].toString()) ?? 0.0) : 0.0,
+        'total_base_price_int_plus': row.length > 19 ? (double.tryParse(row[19].toString()) ?? 0.0) : 0.0,
+        
+        // Intermediate players (columns 20-23)
+        'required_number_of_int': row.length > 20 ? (int.tryParse(row[20].toString()) ?? 0) : 0,
+        'number_of_int_bought': row.length > 21 ? (int.tryParse(row[21].toString()) ?? 0) : 0,
+        'base_price_per_int': row.length > 22 ? (double.tryParse(row[22].toString()) ?? 0.0) : 0.0,
+        'total_base_price_int': row.length > 23 ? (double.tryParse(row[23].toString()) ?? 0.0) : 0.0,
+        
+        // Beginner players (columns 24-27)
+        'required_number_of_beg': row.length > 24 ? (int.tryParse(row[24].toString()) ?? 0) : 0,
+        'number_of_beg_bought': row.length > 25 ? (int.tryParse(row[25].toString()) ?? 0) : 0,
+        'base_price_per_beg': row.length > 26 ? (double.tryParse(row[26].toString()) ?? 0.0) : 0.0,
+        'total_base_price_beg': row.length > 27 ? (double.tryParse(row[27].toString()) ?? 0.0) : 0.0,
+        
+        // Total base pool (column 28)
+        'total_base_pool': row.length > 28 ? (double.tryParse(row[28].toString()) ?? 0.0) : 0.0,
       }).toList();
       
       // Filter out empty teams (where team_id is empty)
