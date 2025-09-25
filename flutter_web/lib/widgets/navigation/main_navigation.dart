@@ -42,17 +42,20 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isDesktop = screenWidth > 800;
-    final isLandscape = screenWidth > screenHeight;
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+    final double screenWidth = mediaQuery.size.width;
+    final double screenHeight = mediaQuery.size.height;
+    final bool isDesktop = screenWidth > 800;
+    final bool isLandscape = screenWidth > screenHeight;
     
     // For mobile landscape (width < 800 but in landscape), use drawer instead of bottom nav
-    final showBottomNav = !isDesktop && !isLandscape;
-    final showAppBar = isDesktop || isLandscape;
+    final bool showBottomNav = !isDesktop && !isLandscape;
+    final bool showAppBar = isDesktop || isLandscape;
 
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: SafeArea(
+        child: _pages[_currentIndex],
+      ),
       bottomNavigationBar: showBottomNav ? BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -76,15 +79,13 @@ class _MainNavigationState extends State<MainNavigation> {
       appBar: showAppBar ? AppBar(
         backgroundColor: const Color.fromARGB(255, 247, 183, 7),
         elevation: 0,
-        title: Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              screenWidth > 1200 ? 'DE Badminton - Kannada Rajyotsava Cup 2025' : 'DE Badminton Cup 2025',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            screenWidth > 1200 ? 'DE Badminton - Kannada Rajyotsava Cup 2025' : 'DE Badminton Cup 2025',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
