@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/google_sheets_service.dart';
+import '../services/photo_service.dart';
 
 class TeamFormationPage extends StatefulWidget {
   const TeamFormationPage({super.key});
@@ -1010,12 +1011,11 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(
+        leading: PhotoService.buildSimpleAvatar(
+          playerName: playerName,
+          photoUrl: player['photo_url'],
           backgroundColor: categoryColor,
-          child: Text(
-            playerName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          radius: 20,
         ),
         title: Text(
           playerName,
@@ -1457,12 +1457,11 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                     itemBuilder: (context, index) {
                       final player = auctionQueue[index];
                       return ListTile(
-                        leading: CircleAvatar(
+                        leading: PhotoService.buildSimpleAvatar(
+                          playerName: player['name'] ?? 'Unknown',
+                          photoUrl: player['photo_url'],
                           backgroundColor: const Color.fromARGB(255, 247, 183, 7),
-                          child: Text(
-                            player['name'].split(' ').map((e) => e[0]).take(2).join(),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
+                          radius: 20,
                         ),
                         title: Text(
                           player['name'],
@@ -1565,12 +1564,11 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                     itemBuilder: (context, index) {
                       final player = draftQueue[index];
                       return ListTile(
-                        leading: CircleAvatar(
+                        leading: PhotoService.buildSimpleAvatar(
+                          playerName: player['name'] ?? 'Unknown',
+                          photoUrl: player['photo_url'],
                           backgroundColor: const Color.fromARGB(255, 247, 183, 7),
-                          child: Text(
-                            player['name'].split(' ').map((e) => e[0]).take(2).join(),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
+                          radius: 20,
                         ),
                         title: Text(
                           player['name'],
@@ -1664,12 +1662,11 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                     itemBuilder: (context, index) {
                       final player = kidsDraftQueue[index];
                       return ListTile(
-                        leading: CircleAvatar(
+                        leading: PhotoService.buildSimpleAvatar(
+                          playerName: player['name'] ?? 'Unknown',
+                          photoUrl: player['photo_url'],
                           backgroundColor: const Color.fromARGB(255, 247, 183, 7),
-                          child: Text(
-                            player['name'].split(' ').map((e) => e[0]).take(2).join(),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
+                          radius: 20,
                         ),
                         title: Text(
                           player['name'],

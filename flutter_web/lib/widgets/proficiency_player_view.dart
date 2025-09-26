@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/photo_service.dart';
 
 class ProficiencyPlayerView extends StatefulWidget {
   final List<Map<String, dynamic>> players;
@@ -431,55 +432,12 @@ class _ProficiencyPlayerViewState extends State<ProficiencyPlayerView>
   }
 
   Widget _buildPlayerAvatar(Map<String, dynamic> player, String proficiency) {
-    final playerName = player['name'] ?? 'Unknown';
-    
-    // Extract initials from player name
-    final nameParts = playerName.trim().split(' ');
-    String initials = '';
-    
-    if (nameParts.isNotEmpty) {
-      // Take first letter of first name
-      if (nameParts[0].isNotEmpty) {
-        initials += nameParts[0][0].toUpperCase();
-      }
-      
-      // Take first letter of last name if available
-      if (nameParts.length > 1 && nameParts[nameParts.length - 1].isNotEmpty) {
-        initials += nameParts[nameParts.length - 1][0].toUpperCase();
-      }
-    }
-    
-    // Fallback to 'U' if no valid initials
-    if (initials.isEmpty) {
-      initials = 'U';
-    }
-
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [
-            _getProficiencyColor(proficiency),
-            _getProficiencyColor(proficiency).withOpacity(0.7),
-          ],
-        ),
-        border: Border.all(
-          color: _getProficiencyColor(proficiency),
-          width: 2,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+    return PhotoService.buildPlayerAvatar(
+      player: player,
+      proficiency: proficiency,
+      proficiencyColor: _getProficiencyColor(proficiency),
+      size: 60,
+      fontSize: 18,
     );
   }
 }
