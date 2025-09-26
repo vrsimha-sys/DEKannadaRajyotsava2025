@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 class PhotoService {
-  /// Converts Google Drive sharing URL to CORS-friendly thumbnail URL
+  /// Converts photo URL for web-compatible format
   /// 
-  /// Handles various Google Drive URL formats and converts to thumbnail API
-  /// which doesn't have CORS restrictions for web applications.
+  /// For web platforms, Google Drive has CORS restrictions that prevent
+  /// direct image loading. This method checks platform compatibility
+  /// and only returns URLs for non-Google Drive sources or mobile apps.
   /// 
-  /// Returns: https://drive.google.com/thumbnail?id={FILE_ID}&sz=w200-h200
+  /// Returns: Direct image URL or null if not web-compatible
   static String? convertGoogleDriveUrl(String? url) {
     if (url == null || url.isEmpty) {
       return null;
@@ -15,48 +16,19 @@ class PhotoService {
     // Clean the URL
     final cleanUrl = url.trim();
     
-    // Check if it's already a thumbnail or uc link
-    if (cleanUrl.contains('drive.google.com/thumbnail') || 
-        cleanUrl.contains('lh3.googleusercontent.com')) {
-      return cleanUrl;
+    // For web platform, skip Google Drive URLs due to CORS restrictions
+    // Google Drive blocks cross-origin requests from web browsers
+    if (_isWebPlatform() && 
+        (cleanUrl.contains('drive.google.com') || 
+         cleanUrl.contains('docs.google.com'))) {
+      print('Skipping Google Drive URL for web platform due to CORS: $cleanUrl');
+      return null; // This will trigger fallback to initials
     }
 
-    // Extract file ID from various Google Drive URL formats
-    String? fileId;
-
-    // Format: https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
-    final fileViewRegex = RegExp(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)');
-    final fileViewMatch = fileViewRegex.firstMatch(cleanUrl);
-    if (fileViewMatch != null) {
-      fileId = fileViewMatch.group(1);
-    }
-
-    // Format: https://drive.google.com/open?id={FILE_ID}
-    if (fileId == null) {
-      final openRegex = RegExp(r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)');
-      final openMatch = openRegex.firstMatch(cleanUrl);
-      if (openMatch != null) {
-        fileId = openMatch.group(1);
-      }
-    }
-
-    // Format: Direct ID extraction from various patterns
-    if (fileId == null) {
-      final idRegex = RegExp(r'[&?]id=([a-zA-Z0-9_-]+)');
-      final idMatch = idRegex.firstMatch(cleanUrl);
-      if (idMatch != null) {
-        fileId = idMatch.group(1);
-      }
-    }
-
-    // If we found a file ID, return the CORS-friendly thumbnail URL
-    if (fileId != null && fileId.isNotEmpty) {
-      // Use thumbnail API which doesn't have CORS restrictions
-      return 'https://drive.google.com/thumbnail?id=$fileId&sz=w200-h200';
-    }
-
-    // If it looks like it might be a direct image URL, return as-is
-    if (cleanUrl.toLowerCase().contains('.jpg') || 
+    // Check if it's already a direct image URL (non-Google Drive)
+    if (cleanUrl.contains('lh3.googleusercontent.com') ||
+        cleanUrl.contains('images.') ||
+        cleanUrl.toLowerCase().contains('.jpg') || 
         cleanUrl.toLowerCase().contains('.jpeg') || 
         cleanUrl.toLowerCase().contains('.png') || 
         cleanUrl.toLowerCase().contains('.gif') ||
@@ -64,11 +36,37 @@ class PhotoService {
       return cleanUrl;
     }
 
+    // For mobile apps, we could potentially handle Google Drive URLs
+    // but for now, return null to use fallback initials
     return null;
   }
 
+  /// Checks if running on web platform
+  static bool _isWebPlatform() {
+    // In Flutter Web, this will be true
+    try {
+      return identical(0, 0.0) == false; // This is a web detection trick
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Generates a unique color based on player name for consistent avatar colors
+  static Color generatePlayerColor(String playerName) {
+    // Create a hash from the player name for consistent color generation
+    int hash = playerName.hashCode;
+    
+    // Generate HSL values for pleasant colors
+    double hue = ((hash % 360).abs()).toDouble();
+    double saturation = 0.6 + ((hash >> 8) % 20) / 100.0; // 0.6 to 0.8
+    double lightness = 0.4 + ((hash >> 16) % 20) / 100.0; // 0.4 to 0.6
+    
+    return HSLColor.fromAHSL(1.0, hue, saturation, lightness).toColor();
+  }
+
   /// Builds a player avatar widget with photo support
-  /// Falls back to initials if photo fails to load
+  /// For web platform: Always uses styled initials due to Google Drive CORS restrictions
+  /// For mobile: Attempts to load photo, falls back to initials on failure
   static Widget buildPlayerAvatar({
     required Map<String, dynamic> player,
     required String proficiency,
@@ -77,7 +75,8 @@ class PhotoService {
     double fontSize = 18,
   }) {
     final playerName = player['name'] ?? 'Unknown';
-    final photoUrl = convertGoogleDriveUrl(player['photo_url']);
+    // For web platform, skip trying to load Google Drive photos due to CORS
+    final photoUrl = _isWebPlatform() ? null : convertGoogleDriveUrl(player['photo_url']);
 
     // Extract initials for fallback
     final initials = _extractInitials(playerName);
@@ -139,16 +138,26 @@ class PhotoService {
     );
   }
 
-  /// Builds the fallback initials avatar
+  /// Builds the fallback initials avatar with enhanced styling
   static Widget _buildInitialsAvatar(String initials, Color proficiencyColor, double fontSize) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
             proficiencyColor,
-            proficiencyColor.withOpacity(0.7),
+            proficiencyColor.withOpacity(0.8),
+            proficiencyColor.withOpacity(0.6),
           ],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: proficiencyColor.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Center(
         child: Text(
@@ -157,6 +166,13 @@ class PhotoService {
             color: Colors.white,
             fontSize: fontSize,
             fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
           ),
         ),
       ),
@@ -188,14 +204,63 @@ class PhotoService {
     return initials;
   }
 
+  /// Creates a beautiful initials avatar with consistent color generation
+  static Widget buildInitialsAvatar(String playerName, {double radius = 20.0}) {
+    final initials = _extractInitials(playerName);
+    final color = generatePlayerColor(playerName);
+    
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color,
+            color.withOpacity(0.8),
+            color.withOpacity(0.6),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: radius * 0.7, // Scale font size to radius
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Simple avatar builder for cases where we just need a CircleAvatar
+  /// For web platform: Always uses initials due to Google Drive CORS restrictions
   static Widget buildSimpleAvatar({
     required String playerName,
     String? photoUrl,
     required Color backgroundColor,
     double radius = 20,
   }) {
-    final directUrl = convertGoogleDriveUrl(photoUrl);
+    // For web platform, skip trying to load Google Drive photos due to CORS
+    final directUrl = _isWebPlatform() ? null : convertGoogleDriveUrl(photoUrl);
     final initials = _extractInitials(playerName);
 
     if (directUrl != null && directUrl.isNotEmpty) {
@@ -223,15 +288,44 @@ class PhotoService {
       );
     }
 
-    // Fallback to initials
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: backgroundColor,
-      child: Text(
-        initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+    // Fallback to styled initials avatar
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            backgroundColor,
+            backgroundColor.withOpacity(0.8),
+            backgroundColor.withOpacity(0.6),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: backgroundColor.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: radius * 0.6, // Scale font size to radius
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
         ),
       ),
     );
