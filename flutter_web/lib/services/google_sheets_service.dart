@@ -347,6 +347,11 @@ class GoogleSheetsService {
         
         // Total base pool (column 28)
         'total_base_pool': row.length > 28 ? (double.tryParse(row[28].toString()) ?? 0.0) : 0.0,
+        
+        // New columns: Owner, Owner Flat, Captain Flat (columns 29-31)
+        'owner': (row.length > 29 ? row[29] : '').toString().trim(),
+        'owner_flat': (row.length > 30 ? row[30] : '').toString().trim(),
+        'captain_flat': (row.length > 31 ? row[31] : '').toString().trim(),
       }).toList();
       
       // Filter out empty teams (where team_id is empty)

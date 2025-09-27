@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/google_sheets_service.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
@@ -511,39 +522,84 @@ class ResponsiveLogoImage extends StatelessWidget {
   }
 }
 
-class TeamTableCard extends StatelessWidget {
+class TeamTableCard extends StatefulWidget {
   const TeamTableCard({super.key});
 
-  final List<Map<String, String>> teamData = const [
-    {
-      'teamName': 'ಚಾಲುಕ್ಯ - Chalukya',
-      'ownerName': 'Sudheer Somayaji',
-      'ownerFlat': '321',
-      'marqueePlayerName': 'Shashank D',
-      'marqueePlayerFlat': '606',
-    },
-    {
-      'teamName': 'ಹೊಯ್ಸಳ - Hoysala',
-      'ownerName': 'Abbur Madhusudhan',
-      'ownerFlat': '007',
-      'marqueePlayerName': 'Prashanth H',
-      'marqueePlayerFlat': '315',
-    },
-    {
-      'teamName': 'ರಾಷ್ಟ್ರಕೂಟ - Rashtrakuta',
-      'ownerName': 'Somshekhar',
-      'ownerFlat': '015',
-      'marqueePlayerName': 'Harisha K',
-      'marqueePlayerFlat': '301',
-    },
-    
-  ];
+  @override
+  State<TeamTableCard> createState() => _TeamTableCardState();
+}
+
+class _TeamTableCardState extends State<TeamTableCard> {
+  List<Map<String, dynamic>> teamData = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeamData();
+  }
+
+  Future<void> _loadTeamData() async {
+    try {
+      final googleSheetsService = GoogleSheetsService();
+      final teams = await googleSheetsService.getTeams();
+      
+      setState(() {
+        teamData = teams;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading team data: $e');
+      setState(() {
+        isLoading = false;
+        // Fallback to hardcoded data
+        teamData = [
+          {
+            'team_id': 'Chalukya',
+            'team_name': 'ಚಾಲುಕ್ಯ - Chalukya',
+            'captain_id': 'Harish Nayak',
+          },
+          {
+            'team_id': 'Hoysala', 
+            'team_name': 'ಹೊಯ್ಸಳ - Hoysala',
+            'captain_id': 'Prashanth H',
+          },
+          {
+            'team_id': 'Rashtrakuta',
+            'team_name': 'ರಾಷ್ಟ್ರಕೂಟ - Rashtrakuta', 
+            'captain_id': 'Harisha K',
+          },
+        ];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 800;
     final isTablet = screenWidth > 600;
+
+    if (isLoading) {
+      return Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: isDesktop ? 40 : (isTablet ? 20 : 16),
+          vertical: 8,
+        ),
+        child: Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Container(
+            height: 200,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 220, 20, 20),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       margin: EdgeInsets.symmetric(
@@ -624,9 +680,11 @@ class TeamTableCard extends StatelessWidget {
   Widget _buildDesktopTable() {
     return Table(
       columnWidths: const {
-        0: FlexColumnWidth(2),
-        1: FlexColumnWidth(3),
-        2: FlexColumnWidth(3),
+        0: FlexColumnWidth(3),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(2),
+        4: FlexColumnWidth(1),
       },
       children: [
         // Header Row
@@ -638,7 +696,9 @@ class TeamTableCard extends StatelessWidget {
           children: [
             _buildTableHeader('Team Name'),
             _buildTableHeader('Owner'),
+            _buildTableHeader('Owner Flat'),
             _buildTableHeader('Captain'),
+            _buildTableHeader('Export'),
           ],
         ),
         // Data Rows
@@ -648,15 +708,11 @@ class TeamTableCard extends StatelessWidget {
               color: i.isEven ? Colors.white : Colors.grey[50],
             ),
             children: [
-              _buildTableCell(teamData[i]['teamName']!, isTeamName: true),
-              _buildPersonCell(
-                teamData[i]['ownerName']!,
-                teamData[i]['ownerFlat']!,
-              ),
-              _buildPersonCell(
-                teamData[i]['marqueePlayerName']!,
-                teamData[i]['marqueePlayerFlat']!,
-              ),
+              _buildTableCell(teamData[i]['team_name']?.toString() ?? 'Unknown Team', isTeamName: true),
+              _buildTableCell(teamData[i]['owner']?.toString() ?? 'TBA', isTeamName: false),
+              _buildTableCell(teamData[i]['owner_flat']?.toString() ?? 'TBA', isTeamName: false),
+              _buildTableCell('${teamData[i]['captain_id']?.toString() ?? 'TBA'} (Flat: ${teamData[i]['captain_flat']?.toString() ?? 'TBA'})', isTeamName: false),
+              _buildExportCell(teamData[i]),
             ],
           ),
       ],
@@ -670,13 +726,10 @@ class TeamTableCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTeamCard(Map<String, String> team) {
+  Widget _buildTeamCard(Map<String, dynamic> team) {
     // Explicit null safety for all team data access
-    final teamName = team['teamName']?.toString() ?? 'Unknown Team';
-    final ownerName = team['ownerName']?.toString() ?? 'Unknown Owner';
-    final ownerFlat = team['ownerFlat']?.toString() ?? '---';
-    final marqueePlayerName = team['marqueePlayerName']?.toString() ?? 'Unknown Player';
-    final marqueePlayerFlat = team['marqueePlayerFlat']?.toString() ?? '---';
+    final teamName = team['team_name']?.toString() ?? 'Unknown Team';
+    final captainName = team['captain_id']?.toString() ?? 'Unknown Captain';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -700,23 +753,29 @@ class TeamTableCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Team Name
-          Text(
-            teamName,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 220, 20, 20),
-            ),
+          // Team Name and Export Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _buildTeamNameWithKannada(teamName),
+              ),
+              IconButton(
+                onPressed: () => _exportTeamToPDF(team),
+                icon: const Icon(Icons.picture_as_pdf),
+                tooltip: 'Export Team Details to PDF',
+                color: const Color.fromARGB(255, 220, 20, 20),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           
           // Owner Info
-          _buildPersonInfo('Owner', ownerName, ownerFlat),
-          const SizedBox(height: 6),
+          _buildPersonInfo('Owner', team['owner']?.toString() ?? 'TBA', team['owner_flat']?.toString() ?? 'TBA'),
+          const SizedBox(height: 8),
           
-          // Marquee Player Info
-          _buildPersonInfo('Captain', marqueePlayerName, marqueePlayerFlat),
+          // Captain Info  
+          _buildPersonInfo('Captain', captainName, team['captain_flat']?.toString() ?? 'TBA'),
         ],
       ),
     );
@@ -787,46 +846,490 @@ class TeamTableCard extends StatelessWidget {
   Widget _buildTableCell(String text, {bool isTeamName = false}) {
     return Padding(
       padding: const EdgeInsets.all(8),
-      child: Text(
+      child: isTeamName ? _buildTeamNameWithKannada(text) : Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
-          fontWeight: isTeamName ? FontWeight.bold : FontWeight.w500,
-          color: isTeamName 
-              ? const Color.fromARGB(255, 220, 20, 20)
-              : Colors.black87,
+          fontWeight: FontWeight.w500,
+          color: Colors.black87,
         ),
         textAlign: TextAlign.center,
       ),
     );
   }
-
-  Widget _buildPersonCell(String name, String flat) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+  
+  Widget _buildTeamNameWithKannada(String teamName) {
+    // Extract English and Kannada parts if available
+    String englishName = teamName;
+    String kannadaName = '';
+    
+    // If team name contains both scripts, try to separate them
+    // This is a simple approach - you can enhance based on your data format
+    if (_containsKannadaScript(teamName)) {
+      // For now, display the original text in both fonts
+      kannadaName = teamName;
+    }
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (kannadaName.isNotEmpty) ...[
           Text(
-            name,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+            kannadaName,
+            style: GoogleFonts.notoSansKannada(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: const Color.fromARGB(255, 220, 20, 20),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
-          Text(
-            'Flat: $flat',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
         ],
+        Text(
+          englishName,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 220, 20, 20),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+  
+  bool _containsKannadaScript(String text) {
+    // Check if text contains Kannada Unicode range (U+0C80–U+0CFF)
+    return text.runes.any((rune) => rune >= 0x0C80 && rune <= 0x0CFF);
+  }
+
+
+
+  /// Builds export button cell for desktop table
+  Widget _buildExportCell(Map<String, dynamic> team) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Center(
+        child: IconButton(
+          onPressed: () => _exportTeamToPDF(team),
+          icon: const Icon(Icons.picture_as_pdf),
+          tooltip: 'Export Team Details to PDF',
+          color: const Color.fromARGB(255, 220, 20, 20),
+        ),
       ),
+    );
+  }
+
+  /// Exports comprehensive team details to PDF
+  Future<void> _exportTeamToPDF(Map<String, dynamic> team) async {
+    try {
+      final teamId = team['team_id']?.toString() ?? '';
+      final teamName = team['team_name']?.toString() ?? 'Unknown Team';
+      final captainName = team['captain_id']?.toString() ?? 'Unknown Captain';
+      final ownerName = team['owner']?.toString() ?? 'TBA';
+
+      if (teamId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid team data for export'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(255, 220, 20, 20),
+          ),
+        ),
+      );
+
+      // Get complete team data
+      final teamDetails = await _getCompleteTeamData(teamId);
+      
+      // Hide loading indicator
+      Navigator.of(context).pop();
+
+      final menPlayers = teamDetails['menPlayers'] ?? <Map<String, dynamic>>[];
+      final womenPlayers = teamDetails['womenPlayers'] ?? <Map<String, dynamic>>[];
+      final kidsPlayers = teamDetails['kidsPlayers'] ?? <Map<String, dynamic>>[];
+      
+      if (menPlayers.isEmpty && womenPlayers.isEmpty && kidsPlayers.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No players found for this team'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Generate PDF with separate pages for each category
+      final pdf = pw.Document();
+      
+      // Add Men Team Page
+      if (menPlayers.isNotEmpty) {
+        pdf.addPage(
+          _buildTeamPage(
+            teamName: teamName,
+            ownerName: ownerName,
+            captainName: captainName,
+            categoryTitle: 'Men Team',
+            players: menPlayers,
+            tableData: _buildMenTableData(menPlayers),
+            headerColor: PdfColors.blue700,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(3),
+              1: const pw.FlexColumnWidth(2),
+              2: const pw.FlexColumnWidth(2),
+              3: const pw.FlexColumnWidth(2),
+              4: const pw.FlexColumnWidth(2),
+            },
+          ),
+        );
+      }
+      
+      // Add Women Team Page
+      if (womenPlayers.isNotEmpty) {
+        pdf.addPage(
+          _buildTeamPage(
+            teamName: teamName,
+            ownerName: ownerName,
+            captainName: captainName,
+            categoryTitle: 'Women Team',
+            players: womenPlayers,
+            tableData: _buildWomenKidsTableData(womenPlayers),
+            headerColor: PdfColors.pink700,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(4),
+              1: const pw.FlexColumnWidth(3),
+              2: const pw.FlexColumnWidth(2),
+            },
+          ),
+        );
+      }
+      
+      // Add Kids Team Page
+      if (kidsPlayers.isNotEmpty) {
+        pdf.addPage(
+          _buildTeamPage(
+            teamName: teamName,
+            ownerName: ownerName,
+            captainName: captainName,
+            categoryTitle: 'Kids Team',
+            players: kidsPlayers,
+            tableData: _buildWomenKidsTableData(kidsPlayers),
+            headerColor: PdfColors.orange700,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(4),
+              1: const pw.FlexColumnWidth(3),
+              2: const pw.FlexColumnWidth(2),
+            },
+          ),
+        );
+      }
+
+      // Save/Print PDF
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+        name: '${teamName.replaceAll(' ', '_')}_Complete_Details.pdf',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF generated for $teamName'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      // Hide loading if still showing
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      
+      print('Error exporting team PDF: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Gets complete team data organized by category with proper sorting
+  Future<Map<String, List<Map<String, dynamic>>>> _getCompleteTeamData(String teamId) async {
+    final googleSheetsService = GoogleSheetsService();
+    
+    try {
+      // Get all players and auction history
+      final allPlayers = await googleSheetsService.getPlayers();
+      final auctionHistory = await googleSheetsService.getAuctionHistory();
+      
+      // Filter players by team
+      final teamPlayers = allPlayers.where((player) {
+        final playerTeamId = player['team_id']?.toString() ?? '';
+        final playerStatus = (player['status'] ?? '').toString().trim();
+        return playerTeamId == teamId && 
+               playerStatus.isNotEmpty && 
+               playerStatus.toLowerCase() != 'null';
+      }).toList();
+
+      // Merge auction data with player data
+      final enrichedPlayers = teamPlayers.map((player) {
+        final playerName = player['name']?.toString() ?? '';
+        final playerId = player['player_id']?.toString() ?? '';
+        
+        // Find winning bid for this player
+        final winningBid = auctionHistory.firstWhere(
+          (bid) => (
+            (bid['player_id']?.toString() ?? '') == playerName || 
+            (bid['player_id']?.toString() ?? '') == playerId
+          ) && 
+          (bid['is_winning_bid'] == true || bid['is_winning_bid'] == 'true'),
+          orElse: () => <String, dynamic>{},
+        );
+        
+        final enrichedPlayer = Map<String, dynamic>.from(player);
+        if (winningBid.isNotEmpty) {
+          enrichedPlayer['bid_amount'] = winningBid['bid_amount'] ?? 0;
+        } else {
+          enrichedPlayer['bid_amount'] = player['base_price'] ?? 0;
+        }
+        
+        return enrichedPlayer;
+      }).toList();
+
+      // Categorize and sort players
+      final menPlayers = <Map<String, dynamic>>[];
+      final womenPlayers = <Map<String, dynamic>>[];
+      final kidsPlayers = <Map<String, dynamic>>[];
+
+      for (final player in enrichedPlayers) {
+        final category = (player['category'] ?? '').toString().toLowerCase();
+        
+        if (category == 'men' || category == 'male' || category == 'man') {
+          menPlayers.add(player);
+        } else if (category == 'women' || category == 'female' || category == 'woman') {
+          womenPlayers.add(player);
+        } else if (category == 'kids' || category == 'children' || category == 'child') {
+          kidsPlayers.add(player);
+        }
+      }
+
+      // Sort men by proficiency then by name, with bid amount priority
+      _sortMenPlayers(menPlayers);
+      
+      // Sort women and kids by proficiency then by name
+      _sortWomenKidsPlayers(womenPlayers);
+      _sortWomenKidsPlayers(kidsPlayers);
+
+      return {
+        'menPlayers': menPlayers,
+        'womenPlayers': womenPlayers,
+        'kidsPlayers': kidsPlayers,
+      };
+    } catch (e) {
+      print('Error getting complete team data: $e');
+      return {
+        'menPlayers': <Map<String, dynamic>>[],
+        'womenPlayers': <Map<String, dynamic>>[],
+        'kidsPlayers': <Map<String, dynamic>>[],
+      };
+    }
+  }
+
+  /// Sorts men players by proficiency order, then by name
+  void _sortMenPlayers(List<Map<String, dynamic>> players) {
+    const proficiencyOrder = {
+      'advanced': 1,
+      'intermediate+': 2,
+      'intermediate': 3,
+      'beginner': 4,
+    };
+    
+    players.sort((a, b) {
+      final proficiencyA = (a['proficiency'] ?? '').toString().toLowerCase().trim();
+      final proficiencyB = (b['proficiency'] ?? '').toString().toLowerCase().trim();
+      final nameA = (a['name'] ?? '').toString().toLowerCase();
+      final nameB = (b['name'] ?? '').toString().toLowerCase();
+      
+      final orderA = proficiencyOrder[proficiencyA] ?? 5;
+      final orderB = proficiencyOrder[proficiencyB] ?? 5;
+      
+      if (orderA != orderB) {
+        return orderA.compareTo(orderB);
+      }
+      
+      return nameA.compareTo(nameB);
+    });
+  }
+
+  /// Sorts women/kids players by proficiency order, then by name
+  void _sortWomenKidsPlayers(List<Map<String, dynamic>> players) {
+    const proficiencyOrder = {
+      'intermediate': 1,
+      'beginner': 2,
+    };
+    
+    players.sort((a, b) {
+      final proficiencyA = (a['proficiency'] ?? '').toString().toLowerCase().trim();
+      final proficiencyB = (b['proficiency'] ?? '').toString().toLowerCase().trim();
+      final nameA = (a['name'] ?? '').toString().toLowerCase();
+      final nameB = (b['name'] ?? '').toString().toLowerCase();
+      
+      final orderA = proficiencyOrder[proficiencyA] ?? 3;
+      final orderB = proficiencyOrder[proficiencyB] ?? 3;
+      
+      if (orderA != orderB) {
+        return orderA.compareTo(orderB);
+      }
+      
+      return nameA.compareTo(nameB);
+    });
+  }
+
+  /// Builds table data for men players (with base and selling price)
+  List<List<String>> _buildMenTableData(List<Map<String, dynamic>> players) {
+    List<List<String>> tableData = [
+      ['Player Name', 'Mobile Number', 'Proficiency', 'Base Price', 'Selling Price'],
+    ];
+    
+    for (final player in players) {
+      final name = (player['name'] ?? 'Unknown').toString();
+      final phone = (player['phone'] ?? 'N/A').toString();
+      final proficiency = (player['proficiency'] ?? 'N/A').toString();
+      final basePrice = (player['base_price'] ?? 0).toString();
+      final bidAmount = (player['bid_amount'] ?? player['base_price'] ?? 0).toString();
+      
+      tableData.add([
+        name,
+        phone,
+        proficiency,
+        '$basePrice Pnts',
+        '$bidAmount Pnts',
+      ]);
+    }
+    
+    return tableData;
+  }
+
+  /// Builds table data for women/kids players (without pricing)
+  List<List<String>> _buildWomenKidsTableData(List<Map<String, dynamic>> players) {
+    List<List<String>> tableData = [
+      ['Player Name', 'Mobile Number', 'Proficiency'],
+    ];
+    
+    for (final player in players) {
+      final name = (player['name'] ?? 'Unknown').toString();
+      final phone = (player['phone'] ?? 'N/A').toString();
+      final proficiency = (player['proficiency'] ?? 'N/A').toString();
+      
+      tableData.add([
+        name,
+        phone,
+        proficiency,
+      ]);
+    }
+    
+    return tableData;
+  }
+  
+  /// Builds a single team category page for PDF
+  pw.Page _buildTeamPage({
+    required String teamName,
+    required String ownerName, 
+    required String captainName,
+    required String categoryTitle,
+    required List<Map<String, dynamic>> players,
+    required List<List<String>> tableData,
+    required PdfColor headerColor,
+    required Map<int, pw.TableColumnWidth> columnWidths,
+  }) {
+    return pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) {
+        return [
+          // Team Header
+          pw.Header(
+            level: 0,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  teamName,
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.red700,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'Owner: $ownerName',
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  'Captain: $captainName',
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 30),
+          
+          // Category Title
+          pw.Text(
+            categoryTitle,
+            style: pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+              color: headerColor,
+            ),
+          ),
+          pw.SizedBox(height: 15),
+          
+          // Players Table
+          pw.TableHelper.fromTextArray(
+            context: context,
+            data: tableData,
+            headerStyle: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.white,
+            ),
+            headerDecoration: pw.BoxDecoration(
+              color: headerColor,
+            ),
+            cellStyle: const pw.TextStyle(fontSize: 12),
+            cellHeight: 30,
+            columnWidths: columnWidths,
+          ),
+          
+          // Footer
+          pw.Spacer(),
+          pw.Text(
+            'Generated on ${DateTime.now().toString().split('.')[0]}',
+            style: pw.TextStyle(
+              fontSize: 10,
+              color: PdfColors.grey600,
+            ),
+          ),
+        ];
+      },
     );
   }
 }
