@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../services/google_sheets_service.dart';
 import '../services/photo_service.dart';
 
@@ -905,9 +908,19 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => _exportTeamPlayersToPDF(teamId, teamName, category),
+                          icon: const Icon(Icons.picture_as_pdf),
+                          tooltip: 'Export to PDF',
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -2015,5 +2028,260 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     }
   }
 
+  /// Exports team players to PDF with proper sorting and all required fields
+  Future<void> _exportTeamPlayersToPDF(String teamId, String teamName, String? category) async {
+    try {
+      // Get team players with all data including phone numbers
+      final players = await _getTeamPlayersForPDF(teamId, category);
+      
+      if (players.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No players found to export'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
+      // Generate PDF
+      final pdf = pw.Document();
+      
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          build: (pw.Context context) {
+            return [
+              // Header
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  '$teamName - ${category ?? "All"} Players',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              
+              // Table
+              pw.TableHelper.fromTextArray(
+                context: context,
+                data: _buildPDFTableData(players, category),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.red700,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 10),
+                cellHeight: 30,
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft,  // Name
+                  1: pw.Alignment.center,      // Mobile
+                  2: pw.Alignment.center,      // Proficiency
+                  3: pw.Alignment.centerRight, // Base Price
+                  4: pw.Alignment.centerRight, // Selling Price
+                },
+              ),
+              
+              pw.SizedBox(height: 20),
+              
+              // Footer
+              pw.Text(
+                'Generated on ${DateTime.now().toString().split('.')[0]}',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            ];
+          },
+        ),
+      );
+
+      // Print/Save PDF
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+        name: '${teamName}_${category ?? "All"}_Players.pdf',
+      );
+
+    } catch (e) {
+      print('Error exporting PDF: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error exporting PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Gets team players with complete data including phone numbers for PDF export
+  Future<List<Map<String, dynamic>>> _getTeamPlayersForPDF(String teamId, String? category) async {
+    final googleSheetsService = GoogleSheetsService();
+    try {
+      print('TeamFormationPage: Getting players for PDF - team $teamId, category: $category');
+      
+      // Get all players and auction history
+      final allPlayers = await googleSheetsService.getPlayers();
+      final auctionHistory = await googleSheetsService.getAuctionHistory();
+      
+      // Filter players by team_id and category
+      var teamPlayers = allPlayers.where((player) {
+        final playerTeamId = player['team_id']?.toString() ?? '';
+        final playerStatus = (player['status'] ?? '').toString().trim();
+        
+        // Player must belong to this team and have a status (sold/drafted)
+        if (playerTeamId != teamId || playerStatus.isEmpty || playerStatus.toLowerCase() == 'null') {
+          return false;
+        }
+        
+        // If category is specified, filter by category
+        if (category != null) {
+          final playerCategory = (player['category'] ?? '').toString().toLowerCase();
+          final targetCategory = category.toLowerCase();
+          return playerCategory == targetCategory || 
+                 (targetCategory == 'men' && (playerCategory == 'male' || playerCategory == 'man')) ||
+                 (targetCategory == 'women' && (playerCategory == 'female' || playerCategory == 'woman')) ||
+                 (targetCategory == 'kids' && (playerCategory == 'children' || playerCategory == 'child'));
+        }
+        
+        return true;
+      }).toList();
+      
+      // Merge auction history data with player data
+      final enrichedPlayers = teamPlayers.map((player) {
+        final playerName = player['name']?.toString() ?? '';
+        final playerId = player['player_id']?.toString() ?? '';
+        
+        // Find the winning bid for this player from auction history
+        final winningBid = auctionHistory.firstWhere(
+          (bid) => (
+            (bid['player_id']?.toString() ?? '') == playerName || 
+            (bid['player_id']?.toString() ?? '') == playerId
+          ) && 
+          (bid['is_winning_bid'] == true || bid['is_winning_bid'] == 'true'),
+          orElse: () => <String, dynamic>{},
+        );
+        
+        // Create enriched player data
+        final enrichedPlayer = Map<String, dynamic>.from(player);
+        if (winningBid.isNotEmpty) {
+          enrichedPlayer['bid_amount'] = winningBid['bid_amount'] ?? 0;
+        } else {
+          enrichedPlayer['bid_amount'] = player['base_price'] ?? 0; // Fallback to base_price
+        }
+        
+        return enrichedPlayer;
+      }).toList();
+      
+      // Sort players based on category requirements
+      if (category?.toLowerCase() == 'men') {
+        // Men: Sort by bid_amount (descending), then by name (ascending)
+        enrichedPlayers.sort((a, b) {
+          final bidAmountA = int.tryParse(a['bid_amount']?.toString() ?? '0') ?? 0;
+          final bidAmountB = int.tryParse(b['bid_amount']?.toString() ?? '0') ?? 0;
+          
+          if (bidAmountA != bidAmountB) {
+            return bidAmountB.compareTo(bidAmountA); // Descending bid amount
+          }
+          
+          final nameA = (a['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['name'] ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB); // Ascending name
+        });
+      } else {
+        // Women and Kids: Sort by proficiency, then by name
+        const proficiencyOrder = {
+          'advanced': 1,
+          'intermediate+': 2,
+          'intermediate': 3,
+          'beginner': 4,
+        };
+        
+        enrichedPlayers.sort((a, b) {
+          final proficiencyA = (a['proficiency'] ?? '').toString().toLowerCase().trim();
+          final proficiencyB = (b['proficiency'] ?? '').toString().toLowerCase().trim();
+          final nameA = (a['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['name'] ?? '').toString().toLowerCase();
+          
+          // Get proficiency order values (default to 5 for unknown proficiency)
+          final orderA = proficiencyOrder[proficiencyA] ?? 5;
+          final orderB = proficiencyOrder[proficiencyB] ?? 5;
+          
+          // First sort by proficiency order
+          if (orderA != orderB) {
+            return orderA.compareTo(orderB);
+          }
+          
+          // Then sort by name within the same proficiency
+          return nameA.compareTo(nameB);
+        });
+      }
+      
+      print('TeamFormationPage: Found ${enrichedPlayers.length} players for PDF export');
+      return enrichedPlayers;
+    } catch (e) {
+      print('TeamFormationPage: Error getting team players for PDF: $e');
+      return [];
+    }
+  }
+
+  /// Builds table data for PDF export
+  List<List<String>> _buildPDFTableData(List<Map<String, dynamic>> players, String? category) {
+    List<List<String>> tableData = [];
+    
+    // Header row - different columns based on category
+    if (category?.toLowerCase() == 'men') {
+      tableData.add([
+        'Player Name',
+        'Mobile Number',
+        'Proficiency',
+        'Base Price',
+        'Selling Price',
+      ]);
+    } else {
+      tableData.add([
+        'Player Name',
+        'Mobile Number', 
+        'Proficiency',
+        'Status',
+        '',
+      ]);
+    }
+    
+    // Data rows
+    for (final player in players) {
+      final name = (player['name'] ?? 'Unknown').toString();
+      final phone = (player['phone'] ?? 'N/A').toString();
+      final proficiency = (player['proficiency'] ?? 'N/A').toString();
+      final basePrice = (player['base_price'] ?? 0).toString();
+      final bidAmount = (player['bid_amount'] ?? player['base_price'] ?? 0).toString();
+      final status = (player['status'] ?? 'N/A').toString();
+      
+      if (category?.toLowerCase() == 'men') {
+        tableData.add([
+          name,
+          phone,
+          proficiency,
+          '$basePrice Pnts',
+          '$bidAmount Pnts',
+        ]);
+      } else {
+        tableData.add([
+          name,
+          phone,
+          proficiency,
+          status,
+          '',
+        ]);
+      }
+    }
+    
+    return tableData;
+  }
 }
