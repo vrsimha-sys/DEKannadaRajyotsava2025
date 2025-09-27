@@ -983,7 +983,7 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     final playerName = (player['name'] ?? 'Unknown Player').toString();
     final playerCategory = (player['category'] ?? '').toString();
     final proficiency = (player['proficiency'] ?? 'Not specified').toString();
-    final basePrice = (player['base_price'] ?? 0).toString();
+    final bidAmount = (player['bid_amount'] ?? player['base_price'] ?? 0).toString();
     final status = (player['status'] ?? '').toString();
     
     // Generate color based on category
@@ -1035,7 +1035,7 @@ class _TeamFormationPageState extends State<TeamFormationPage>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '$basePrice Pnts',
+                    '$bidAmount Pnts',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Color.fromARGB(255, 220, 20, 20),
@@ -1074,8 +1074,9 @@ class _TeamFormationPageState extends State<TeamFormationPage>
     try {
       print('TeamFormationPage: Getting players for team $teamId, category: $category');
       
-      // Get all players
+      // Get all players and auction history
       final allPlayers = await googleSheetsService.getPlayers();
+      final auctionHistory = await googleSheetsService.getAuctionHistory();
       
       // Filter players by team_id and category
       final teamPlayers = allPlayers.where((player) {
@@ -1100,8 +1101,34 @@ class _TeamFormationPageState extends State<TeamFormationPage>
         return true;
       }).toList();
       
-      print('TeamFormationPage: Found ${teamPlayers.length} players for team $teamId');
-      return teamPlayers;
+      // Merge auction history data with player data
+      final enrichedPlayers = teamPlayers.map((player) {
+        final playerName = player['name']?.toString() ?? '';
+        final playerId = player['player_id']?.toString() ?? '';
+        
+        // Find the winning bid for this player from auction history
+        final winningBid = auctionHistory.firstWhere(
+          (bid) => (
+            (bid['player_id']?.toString() ?? '') == playerName || 
+            (bid['player_id']?.toString() ?? '') == playerId
+          ) && 
+          (bid['is_winning_bid'] == true || bid['is_winning_bid'] == 'true'),
+          orElse: () => <String, dynamic>{},
+        );
+        
+        // Create enriched player data
+        final enrichedPlayer = Map<String, dynamic>.from(player);
+        if (winningBid.isNotEmpty) {
+          enrichedPlayer['bid_amount'] = winningBid['bid_amount'] ?? 0;
+        } else {
+          enrichedPlayer['bid_amount'] = player['base_price'] ?? 0; // Fallback to base_price
+        }
+        
+        return enrichedPlayer;
+      }).toList();
+      
+      print('TeamFormationPage: Found ${enrichedPlayers.length} players for team $teamId');
+      return enrichedPlayers;
     } catch (e) {
       print('TeamFormationPage: Error getting team players: $e');
       return [];

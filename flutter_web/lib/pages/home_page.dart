@@ -519,8 +519,8 @@ class TeamTableCard extends StatelessWidget {
       'teamName': 'ಚಾಲುಕ್ಯ - Chalukya',
       'ownerName': 'Sudheer Somayaji',
       'ownerFlat': '321',
-      'marqueePlayerName': 'Harish Nayak',
-      'marqueePlayerFlat': '211',
+      'marqueePlayerName': 'Shashank D',
+      'marqueePlayerFlat': '606',
     },
     {
       'teamName': 'ಹೊಯ್ಸಳ - Hoysala',
@@ -638,7 +638,7 @@ class TeamTableCard extends StatelessWidget {
           children: [
             _buildTableHeader('Team Name'),
             _buildTableHeader('Owner'),
-            _buildTableHeader('Marquee Player'),
+            _buildTableHeader('Captain'),
           ],
         ),
         // Data Rows
@@ -716,7 +716,7 @@ class TeamTableCard extends StatelessWidget {
           const SizedBox(height: 6),
           
           // Marquee Player Info
-          _buildPersonInfo('Marquee Player', marqueePlayerName, marqueePlayerFlat),
+          _buildPersonInfo('Captain', marqueePlayerName, marqueePlayerFlat),
         ],
       ),
     );
