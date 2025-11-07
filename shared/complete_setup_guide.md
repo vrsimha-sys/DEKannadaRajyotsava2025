@@ -16,9 +16,9 @@ This guide will help you set up a complete Google Sheets backend for your DE Kar
 
 ## 📊 Your Google Sheet Information
 
-**Google Sheet URL**: https://docs.google.com/spreadsheets/d/1_PhI-Rrx6RMF45X7G1yO6lv7I22D4K1yoS1ZyUqza8I/edit
+**Google Sheet URL**: https://docs.google.com/spreadsheets/d/1gVCjlH1lVb-OzLESEwZPUCbyKdQeuN0hKsyvmTV7-TU/edit
 
-**Spreadsheet ID**: `1_PhI-Rrx6RMF45X7G1yO6lv7I22D4K1yoS1ZyUqza8I` (already configured in your app)
+**Spreadsheet ID**: `1gVCjlH1lVb-OzLESEwZPUCbyKdQeuN0hKsyvmTV7-TU` (already configured in your app)
 
 ---
 
@@ -43,17 +43,17 @@ For each sheet, add headers in **Row 1** exactly as specified:
 
 #### Players Sheet (Row 1):
 ```
-player_id | name | email | phone | flat_number | category | proficiency | emergency_contact | emergency_phone | registration_date | base_price | status | team_id | created_at
+player_id | name | email | phone | flat_number | category | proficiency | emergency_contact | emergency_phone | registration_date | base_price | status | team_id | created_at | photo_url
 ```
 
 #### Teams Sheet (Row 1):
 ```
-team_id | team_name | captain_id | total_budget | spent_budget | remaining_budget | player_count | wins | losses | points | status | created_at
+team_id | team_name | captain_id | total_budget | spent_budget | remaining_budget | player_count | wins | losses | points | status | created_at | required_number_of_adv | number_of_adv_bought | base_price_per_adv | total_base_price_adv | required_number_of_int_plus | number_of_int_plus_bought | base_price_per_int_plus | total_base_price_int_plus | required_number_of_int | number_of_int_bought | base_price_per_int | total_base_price_int | required_number_of_beg | number_of_beg_bought | base_price_per_beg | total_base_price_beg | total_base_pool | owner | owner_flat | captain_flat
 ```
 
 #### Auction_History Sheet (Row 1):
 ```
-auction_id | player_id | team_id | bid_amount | bid_type | is_winning_bid | auction_round | bid_timestamp | auctioneer_notes
+auction_id | player_id | team_id | initial_bid_amount | bid_amount | bid_type | is_winning_bid | auction_round | bid_timestamp | auctioneer_notes
 ```
 
 #### Matches Sheet (Row 1):
@@ -82,24 +82,64 @@ config_key | config_value | config_type | description | is_active | last_updated
 3. Optional: Add background color for better visibility
 4. Consider freezing Row 1 (View → Freeze → 1 row)
 
+### 1.4 Verify Sheet GIDs
+Each sheet has a unique GID that the app uses to fetch data. The app is currently configured with these GIDs:
+
+- `Players`: GID `0` (usually the first sheet)
+- `Teams`: GID `1291526164`
+- `Auction_History`: GID `1603832257`
+- `Matches`: GID `424738768`
+- `Live_Updates`: GID `467423031`
+- `Tournament_Stats`: GID `1466958466`
+- `Tournament_Config`: GID `780447557`
+
+**To find your sheet's GID:**
+1. Click on a sheet tab
+2. Look at the URL in your browser
+3. Find `#gid=XXXXXXXX` - that number is your GID
+
+**If your GIDs are different**, update them in `flutter_web/lib/services/google_sheets_service.dart` in the `_sheetGids` map.
+
+### 1.5 Make Sheet Public (Required)
+The app uses CSV export to read data, so your sheet must be public:
+
+1. Click **"Share"** button in top-right corner of your Google Sheet
+2. Click **"Change to anyone with the link"**
+3. Set permission to **"Viewer"** 
+4. Click **"Done"**
+
+⚠️ **Important**: Without this step, the app cannot access your sheet data!
+
 ---
 
 ## 📝 Step 2: Add Sample Data
 
-Use the sample data from `sample_tournament_data.md` to populate your sheets:
+Add sample data to test your setup. Start entering data from **Row 2** (Row 1 contains headers):
 
-1. Open each sheet tab
-2. Click on cell A2 (first data row)
-3. Copy the sample data for that sheet from the sample data file
-4. Paste using Ctrl+V
-5. Verify data appears in correct columns
+### 2.1 Sample Players Data (add to Players sheet):
+```
+P001 | Rajesh Kumar | rajesh@email.com | +91-9876543210 | 4B | Men | Advanced | Sunita Kumar | +91-9876543211 | 2025-09-15 | 5000 | Active | T001 | 2025-09-15 10:30:00 | 
+P002 | Priya Sharma | priya@email.com | +91-9876543212 | 7A | Women | Intermediate+ | Amit Sharma | +91-9876543213 | 2025-09-15 | 4000 | Active | T002 | 2025-09-15 11:00:00 | 
+P003 | Arjun Patel | arjun@email.com | +91-9876543214 | 2C | Kids | Beginner | Kavita Patel | +91-9876543215 | 2025-09-16 | 2000 | Active | | 2025-09-16 09:00:00 | 
+```
+
+### 2.2 Sample Teams Data (add to Teams sheet):
+```
+T001 | Eagles | P001 | 50000 | 25000 | 25000 | 8 | 0 | 0 | 0 | Active | 2025-01-01 | 2 | 1 | 5000 | 5000 | 2 | 1 | 4000 | 4000 | 2 | 1 | 3000 | 3000 | 2 | 1 | 2000 | 2000 | 14000 | Rajesh Kumar | 4B | 4B
+T002 | Tigers | P002 | 50000 | 30000 | 20000 | 6 | 0 | 0 | 0 | Active | 2025-01-01 | 2 | 1 | 5000 | 5000 | 2 | 1 | 4000 | 4000 | 2 | 1 | 3000 | 3000 | 2 | 1 | 2000 | 2000 | 14000 | Priya Sharma | 7A | 7A
+```
+
+### 2.3 Sample Matches Data (add to Matches sheet):
+```
+M001 | Pool Match | T001 | T002 | 2025-11-15 | 10:00 AM | Court 1 | Scheduled | 0 | 0 | | | Referee 1 | 1 | Group A | Opening match | 2025-11-01
+M002 | Semi Final | T001 | T002 | 2025-11-16 | 2:00 PM | Court 1 | Live | 15 | 12 | | 45 mins | Referee 2 | 2 | Semi Finals | Exciting match | 2025-11-01
+```
 
 This will give you:
-- 10 sample players across different categories
-- 4 tournament teams with realistic budgets
-- 7 matches in various stages
-- Live match updates and commentary
-- Tournament statistics and configuration
+- Sample players across different categories (Men, Women, Kids)
+- Tournament teams with realistic budgets and player requirements
+- Matches in various stages (Scheduled, Live, Completed)
+- Proper data structure for testing the app functionality
 
 ---
 
@@ -136,33 +176,28 @@ await GoogleSheetsService().getTournamentConfig(); // All settings
 
 ---
 
-## 🔐 Step 4: Authentication Setup (Optional)
+## 🔐 Step 4: Data Access Method
 
-For production use, you'll need to set up Google Sheets API authentication:
+This app uses **Direct CSV Access** to read Google Sheets data, which is simpler than API authentication:
 
-### 4.1 Create Service Account
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select existing one
-3. Enable Google Sheets API
-4. Create a Service Account
-5. Download the JSON credentials file
+### 4.1 How It Works
+- The app fetches data using Google Sheets' CSV export feature
+- No API keys or service accounts needed
+- Just requires the sheet to be publicly viewable (see Step 1.5)
 
-### 4.2 Share Your Sheet
-1. Open your Google Sheet
-2. Click "Share" in the top right
-3. Add the service account email (from JSON file)
-4. Give "Editor" permissions
+### 4.2 Current Implementation
+The `GoogleSheetsService` automatically:
+- Constructs CSV export URLs using your spreadsheet ID and sheet GIDs  
+- Parses the CSV data into Dart objects
+- Handles errors gracefully with fallback to dummy data
 
-### 4.3 Update Flutter App
-Replace the placeholder credentials in `google_sheets_service.dart`:
+### 4.3 For Advanced Users (Optional)
+If you want to implement write operations or private sheets:
+1. Set up Google Sheets API with service account authentication
+2. Replace the CSV reading logic with proper API calls
+3. Add write methods for adding/updating data directly from the app
 
-```dart
-final credentials = ServiceAccountCredentials.fromJson({
-  // Paste your actual service account JSON here
-});
-```
-
-**Note**: Currently, the app uses dummy data when authentication fails, so it works immediately for testing.
+**Note**: The current CSV method is read-only but works immediately without authentication setup.
 
 ---
 
@@ -181,10 +216,15 @@ flutter run -d chrome --web-port 8080
 4. **Battle Day**: Should show matches in different statuses
 
 ### 5.3 Verify Data Display
-- Check that player categories are correctly separated
-- Verify team information shows budgets and player counts
-- Confirm matches appear with proper statuses
-- Test refresh buttons to ensure data updates
+- **Player Roster**: Should show players in Men/Women/Kids tabs with photos and details
+- **Team Formation**: Should display teams with auction info or "Auction Day Awaits" if no teams
+- **Battle Day**: Should show matches in Fixtures/Live/Results tabs or "Battle yet to Start" if no matches
+- Use **"Debug: Test Sheets Connection"** button on Team Formation page for detailed diagnostics
+
+### 5.4 Expected Behaviors
+- **With Sample Data**: All pages should show your test data
+- **Empty Sheets**: Pages will show placeholder messages (e.g., "Auction Day Awaits")
+- **Connection Issues**: App gracefully falls back to dummy data for demonstration
 
 ---
 
@@ -293,9 +333,24 @@ The app includes console logging for debugging:
 ## 📞 Support
 
 If you encounter any issues:
-1. Check the sample data format in `sample_tournament_data.md`
-2. Verify your sheet structure matches `badminton_tournament_data_model.md`
-3. Review the Google Sheets service implementation
+
+### Common Solutions:
+1. **Sheet not loading data**: Verify sheet names match exactly (case-sensitive)
+2. **Wrong data structure**: Ensure column headers are in Row 1 and match the specified format
+3. **GID errors**: Check that your sheet GIDs match those in `google_sheets_service.dart`
+4. **Network issues**: Ensure your Google Sheet is public (Anyone with link → Viewer)
+
+### Debug Steps:
+1. Open browser Developer Tools (F12) and check Console for error messages
+2. Use the "Test Sheets Connection" button on the Team Formation page
+3. Verify your spreadsheet URL matches the one in the service
 4. Test with dummy data first before adding authentication
 
+### Quick Fixes:
+- **Teams showing "Auction Day Awaits"**: Check Teams sheet GID and data format
+- **Players not loading**: Verify Players sheet has data starting from Row 2
+- **Matches not displaying**: Confirm Matches sheet structure and status values
+
 Your badminton tournament app is now ready for action! 🏸🏆
+
+For additional support, check the `DEBUG_TEAMS_GUIDE.md` file for specific team loading issues.

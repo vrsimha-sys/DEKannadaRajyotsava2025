@@ -383,23 +383,30 @@ class GoogleSheetsService {
       final rows = data.skip(1).toList();
       
       List<Map<String, dynamic>> matches = rows.map((row) => <String, dynamic>{
-        'match_id': (row.isNotEmpty ? row[0] : '').toString().trim(),
-        'match_type': (row.length > 1 ? row[1] : '').toString().trim(),
-        'team1_id': (row.length > 2 ? row[2] : '').toString().trim(),
-        'team2_id': (row.length > 3 ? row[3] : '').toString().trim(),
-        'scheduled_date': (row.length > 4 ? row[4] : '').toString().trim(),
-        'scheduled_time': (row.length > 5 ? row[5] : '').toString().trim(),
-        'venue': (row.length > 6 ? row[6] : '').toString().trim(),
-        'status': (row.length > 7 ? row[7] : '').toString().trim(),
-        'team1_score': row.length > 8 ? (int.tryParse(row[8].toString()) ?? 0) : 0,
-        'team2_score': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0,
-        'winner_team_id': (row.length > 10 ? row[10] : '').toString().trim(),
-        'match_duration': (row.length > 11 ? row[11] : '').toString().trim(),
-        'referee': (row.length > 12 ? row[12] : '').toString().trim(),
-        'round_number': row.length > 13 ? (int.tryParse(row[13].toString()) ?? 0) : 0,
-        'group_name': (row.length > 14 ? row[14] : '').toString().trim(),
-        'notes': (row.length > 15 ? row[15] : '').toString().trim(),
-        'created_at': (row.length > 16 ? row[16] : '').toString().trim(),
+        // Actual columns: Time, Court, Pair 1, Pair 2, Category, Skill, Team 1, Team 2, Status, Team1_Score, Team2_Score, Winner_Team_ID
+        'scheduled_time': (row.isNotEmpty ? row[0] : '').toString().trim(), // Time
+        'venue': (row.length > 1 ? row[1] : '').toString().trim(), // Court
+        'pair1': (row.length > 2 ? row[2] : '').toString().trim(), // Pair 1
+        'pair2': (row.length > 3 ? row[3] : '').toString().trim(), // Pair 2
+        'category': (row.length > 4 ? row[4] : '').toString().trim(), // Category
+        'skill': (row.length > 5 ? row[5] : '').toString().trim(), // Skill
+        'team1_id': (row.length > 6 ? row[6] : '').toString().trim(), // Team 1
+        'team2_id': (row.length > 7 ? row[7] : '').toString().trim(), // Team 2
+        'status': (row.length > 8 ? row[8] : '').toString().trim(), // Status
+        'team1_score': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0, // Team1_Score
+        'team2_score': row.length > 10 ? (int.tryParse(row[10].toString()) ?? 0) : 0, // Team2_Score
+        'winner_team_id': (row.length > 11 ? row[11] : '').toString().trim(), // Winner_Team_ID
+        
+        // Keep some legacy fields for compatibility but set them to empty/default values
+        'match_id': '${row.isNotEmpty ? row[0] : ''}_${row.length > 1 ? row[1] : ''}', // Generate from time + court
+        'match_type': (row.length > 5 ? row[5] : '').toString().trim(), // Use skill as match type
+        'scheduled_date': '2025-11-09', // Tournament date
+        'match_duration': '', // Not in sheet
+        'referee': '', // Not in sheet
+        'round_number': 1, // Default
+        'group_name': '', // Not in sheet
+        'notes': '', // Not in sheet
+        'created_at': '', // Not in sheet
       }).toList();
       
       if (status != null) {
@@ -413,6 +420,34 @@ class GoogleSheetsService {
     } catch (e) {
       print('Error fetching matches: $e');
       return _getDummyMatches(status: status);
+    }
+  }
+
+  // Get matches by category and optionally by status
+  Future<List<Map<String, dynamic>>> getMatchesByCategory({String? category, String? status}) async {
+    try {
+      final allMatches = await getMatches();
+      
+      List<Map<String, dynamic>> filteredMatches = allMatches;
+      
+      // Filter by category if specified
+      if (category != null) {
+        filteredMatches = filteredMatches.where((match) => 
+          match['category'].toString().toLowerCase() == category.toLowerCase()
+        ).toList();
+      }
+      
+      // Filter by status if specified
+      if (status != null) {
+        filteredMatches = filteredMatches.where((match) => 
+          match['status'].toString().toLowerCase() == status.toLowerCase()
+        ).toList();
+      }
+      
+      return filteredMatches;
+    } catch (e) {
+      print('Error fetching matches by category: $e');
+      return [];
     }
   }
 
@@ -526,9 +561,8 @@ class GoogleSheetsService {
   }
 
   List<Map<String, dynamic>> _getDummyMatches({String? status}) {
-    // Return empty list to show "Battle yet to Start" message
-    // When real data is available in Google Sheets, this method won't be called
-    print('Returning empty matches list - Battle yet to Start');
+    // This should only be called if Google Sheets data is not available
+    print('No data available from Google Sheets - returning empty list');
     return [];
   }
 
