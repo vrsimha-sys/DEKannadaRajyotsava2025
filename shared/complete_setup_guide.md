@@ -25,7 +25,7 @@ This guide will help you set up a complete Google Sheets backend for your DE Kar
 ## 🔧 Step 1: Create Sheet Structure
 
 ### 1.1 Add Required Sheets
-Your Google Sheet needs exactly 7 tabs. Create them by:
+Your Google Sheet needs exactly 8 tabs. Create them by:
 1. Right-clicking on existing sheet tabs at the bottom
 2. Select "Insert sheet"
 3. Create these tabs with **exact names**:
@@ -37,6 +37,7 @@ Your Google Sheet needs exactly 7 tabs. Create them by:
 - `Live_Updates`
 - `Tournament_Stats`
 - `Tournament_Config`
+- `Umpires`
 
 ### 1.2 Add Column Headers
 For each sheet, add headers in **Row 1** exactly as specified:
@@ -58,7 +59,7 @@ auction_id | player_id | team_id | initial_bid_amount | bid_amount | bid_type | 
 
 #### Matches Sheet (Row 1):
 ```
-match_id | match_type | team1_id | team2_id | scheduled_date | scheduled_time | venue | status | team1_score | team2_score | winner_team_id | match_duration | referee | round_number | group_name | notes | created_at
+Time | Court | Pair 1 | Pair 2 | Category | Skill | Team 1 | Team 2 | Status | Team1_Score | Team2_Score | Winner_Team_ID
 ```
 
 #### Live_Updates Sheet (Row 1):
@@ -74,6 +75,11 @@ stat_id | entity_type | entity_id | stat_category | stat_name | stat_value | cal
 #### Tournament_Config Sheet (Row 1):
 ```
 config_key | config_value | config_type | description | is_active | last_updated
+```
+
+#### Umpires Sheet (Row 1):
+```
+user_name | password
 ```
 
 ### 1.3 Format Headers
@@ -92,6 +98,7 @@ Each sheet has a unique GID that the app uses to fetch data. The app is currentl
 - `Live_Updates`: GID `467423031`
 - `Tournament_Stats`: GID `1466958466`
 - `Tournament_Config`: GID `780447557`
+- `Umpires`: GID `PLACEHOLDER_GID` (Replace with actual GID from your sheet)
 
 **To find your sheet's GID:**
 1. Click on a sheet tab
@@ -169,6 +176,10 @@ await GoogleSheetsService().getTeams(); // All teams
 // Matches
 await GoogleSheetsService().getMatches(); // All matches
 await GoogleSheetsService().getMatches(status: 'Live'); // Live matches only
+
+// Umpires
+await GoogleSheetsService().getUmpires(); // All umpires
+await GoogleSheetsService().getAvailableUmpires(); // Available umpires only
 
 // Tournament Configuration
 await GoogleSheetsService().getTournamentConfig(); // All settings

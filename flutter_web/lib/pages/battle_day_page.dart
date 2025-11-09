@@ -19,6 +19,10 @@ class _BattleDayPageState extends State<BattleDayPage>
   late Animation<double> _scaleAnimation;
   final GoogleSheetsService _googleSheetsService = GoogleSheetsService();
 
+  // Pagination variables for fixtures (desktop mode)
+  final Map<String, int> _currentPage = {'Men': 0, 'Women': 0, 'Kids': 0};
+  static const int _itemsPerPage = 10;
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +30,6 @@ class _BattleDayPageState extends State<BattleDayPage>
     _fixturesTabController = TabController(length: 3, vsync: this); // Men, Women, Kids
     _standingsTabController = TabController(length: 3, vsync: this); // Men, Women, Kids
     
-    // Initialize animations for "Battle yet to Start" widget
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -37,15 +40,21 @@ class _BattleDayPageState extends State<BattleDayPage>
     );
     
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _fadeAnimationController, curve: Curves.easeIn),
     );
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _scaleAnimationController, curve: Curves.elasticOut),
     );
     
-    // Start animations
     _fadeAnimationController.forward();
     _scaleAnimationController.forward();
+  }
+
+  // Refresh data method
+  void _refreshData() {
+    setState(() {
+      // This will trigger a rebuild of FutureBuilder widgets
+    });
   }
 
   @override
@@ -65,190 +74,198 @@ class _BattleDayPageState extends State<BattleDayPage>
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Column(
-        children: [
-          // Header Section
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(isDesktop ? 40 : 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.fromARGB(255, 247, 183, 7),
-                  Color.fromARGB(255, 220, 20, 20),
-                ],
-              ),
-            ),
-            child: Column(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Battle Day',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 32 : 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+      body: AnimatedBuilder(
+        animation: _fadeAnimation,
+        builder: (context, child) {
+          return FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Column(
+                children: [
+                  // Header Section
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 16,
+                      bottom: 24,
+                      left: 24,
+                      right: 24,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color.fromARGB(255, 247, 183, 7),
+                          Color.fromARGB(255, 220, 20, 20),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tournament Fixtures & Standings',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 16 : 14,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sunday, 09 Nov, 2025',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 14 : 12,
-                        color: Colors.white.withOpacity(0.8),
-                        fontWeight: FontWeight.w300,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Content Area - Conditional based on data availability
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _googleSheetsService.getMatches(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color.fromARGB(255, 220, 20, 20),
-                    ),
-                  );
-                }
-                
-                // Debug logging
-                print('BattleDayPage: snapshot.hasData = ${snapshot.hasData}');
-                print('BattleDayPage: snapshot.data = ${snapshot.data}');
-                if (snapshot.hasError) {
-                  print('BattleDayPage: snapshot.error = ${snapshot.error}');
-                }
-                
-                // Check if there is data available
-                bool hasData = snapshot.hasData && snapshot.data!.isNotEmpty;
-                
-                if (!hasData) {
-                  // Show only "Battle yet to Start" widget when no data
-                  return Center(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                    child: Column(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.sports_tennis,
-                              size: 80,
-                              color: const Color.fromARGB(255, 220, 20, 20).withOpacity(0.6),
-                            ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              '⚔️ Battle yet to Start! ⚔️',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 220, 20, 20),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
                             Text(
-                              'Tournament battles are being prepared.\nCome back soon to witness the epic matches!',
+                              'Battle Day',
                               style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                                height: 1.5,
+                                fontSize: isDesktop ? 32 : 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 32),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color.fromARGB(255, 220, 20, 20).withOpacity(0.3),
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(25),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tournament Fixtures & Standings',
+                              style: TextStyle(
+                                fontSize: isDesktop ? 16 : 14,
+                                color: Colors.white.withOpacity(0.9),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Sunday, 09 Nov, 2025',
+                              style: TextStyle(
+                                fontSize: isDesktop ? 14 : 12,
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w300,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content Area - Conditional based on data availability
+                  Expanded(
+                    child: FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _googleSheetsService.getMatches(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Color.fromARGB(255, 220, 20, 20),
+                            ),
+                          );
+                        }
+                        
+                        // Debug logging
+                        print('BattleDayPage: snapshot.hasData = ${snapshot.hasData}');
+                        print('BattleDayPage: snapshot.data = ${snapshot.data}');
+                        if (snapshot.hasError) {
+                          print('BattleDayPage: snapshot.error = ${snapshot.error}');
+                        }
+                        
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  size: 64,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Unable to load tournament data',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Error: ${snapshot.error}',
+                                  style: const TextStyle(color: Colors.grey),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _refreshData,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.event_busy,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No matches scheduled',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Check back later for tournament updates',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _refreshData,
+                                  child: const Text('Refresh'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        // Show tabs and content when data is available
+                        return Column(
+                          children: [
+                            // Main Tab Bar (Fixtures and Standings)
+                            Container(
+                              color: Colors.white,
+                              child: TabBar(
+                                controller: _mainTabController,
+                                tabs: const [
+                                  Tab(icon: Icon(Icons.schedule), text: 'Fixtures'),
+                                  Tab(icon: Icon(Icons.leaderboard), text: 'Standings'),
+                                ],
+                                labelColor: const Color.fromARGB(255, 220, 20, 20),
+                                unselectedLabelColor: Colors.grey,
+                                indicatorColor: const Color.fromARGB(255, 220, 20, 20),
+                              ),
+                            ),
+                            
+                            // Tab Content
+                            Expanded(
+                              child: TabBarView(
+                                controller: _mainTabController,
                                 children: [
-                                  Icon(
-                                    Icons.schedule,
-                                    color: const Color.fromARGB(255, 220, 20, 20),
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Prepare for the ultimate showdown!',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color.fromARGB(255, 220, 20, 20),
-                                    ),
-                                  ),
+                                  _buildFixturesSection(),
+                                  _buildStandingsSection(),
                                 ],
                               ),
                             ),
                           ],
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                  );
-                }
-                
-                // Show tabs and content when data is available
-                return Column(
-                  children: [
-                    // Main Tab Bar (Fixtures and Standings)
-                    Container(
-                      color: Colors.white,
-                      child: TabBar(
-                        controller: _mainTabController,
-                        tabs: const [
-                          Tab(icon: Icon(Icons.schedule), text: 'Fixtures'),
-                          Tab(icon: Icon(Icons.leaderboard), text: 'Standings'),
-                        ],
-                        labelColor: const Color.fromARGB(255, 220, 20, 20),
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: const Color.fromARGB(255, 220, 20, 20),
-                      ),
-                    ),
-                    
-                    // Tab Content
-                    Expanded(
-                      child: TabBarView(
-                        controller: _mainTabController,
-                        children: [
-                          _buildFixturesSection(),
-                          _buildStandingsSection(),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
       floatingActionButton: FutureBuilder<List<Map<String, dynamic>>>(
         future: _googleSheetsService.getMatches(),
@@ -270,13 +287,7 @@ class _BattleDayPageState extends State<BattleDayPage>
     );
   }
 
-  void _refreshData() {
-    setState(() {
-      // This will trigger a rebuild and refresh the data
-    });
-  }
-
-  // Build Fixtures Section with Category Tabs
+  // Build Fixtures Section with category tabs
   Widget _buildFixturesSection() {
     return Column(
       children: [
@@ -311,7 +322,7 @@ class _BattleDayPageState extends State<BattleDayPage>
     );
   }
 
-  // Build Standings Section with Category Tabs  
+  // Build Standings Section with category tabs
   Widget _buildStandingsSection() {
     return Column(
       children: [
@@ -361,7 +372,7 @@ class _BattleDayPageState extends State<BattleDayPage>
         
         // Debug logging
         print('FixturesTable ($category): snapshot.hasData = ${snapshot.hasData}');
-        print('FixturesTable ($category): snapshot.data = ${snapshot.data}');
+        print('FixturesTable ($category): snapshot.data length = ${snapshot.data?.length}');
         if (snapshot.hasError) {
           print('FixturesTable ($category): snapshot.error = ${snapshot.error}');
         }
@@ -383,217 +394,202 @@ class _BattleDayPageState extends State<BattleDayPage>
               : LayoutBuilder(
                   builder: (context, constraints) {
                     final isSmallScreen = constraints.maxWidth < 600;
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: isSmallScreen ? 1000 : constraints.maxWidth,
-                        ),
-                        child: DataTable(
-                          headingRowColor: MaterialStateProperty.all(
-                            const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
+                    final isDesktop = constraints.maxWidth >= 600;
+                    
+                    // For desktop, implement pagination
+                    if (isDesktop) {
+                      return _buildPaginatedFixtures(category, fixtures, constraints);
+                    }
+                    
+                    // For mobile, keep the original scrollable layout
+                    return SizedBox(
+                      height: 400,
+                      child: Scrollbar(
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth,
+                              ),
+                              child: DataTable(
+                                columnSpacing: isSmallScreen ? 8 : 16,
+                                headingRowColor: MaterialStateProperty.all(
+                                  const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
+                                ),
+                                columns: [
+                                  DataColumn(
+                                    label: Text(
+                                      'Time',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Court',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: SizedBox(
+                                      width: isSmallScreen ? 80 : 120,
+                                      child: Text(
+                                        'Pair 1',
+                                        style: TextStyle(
+                                          fontSize: isSmallScreen ? 12 : 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromARGB(255, 220, 20, 20),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const DataColumn(label: Text('vs')),
+                                  DataColumn(
+                                    label: SizedBox(
+                                      width: isSmallScreen ? 80 : 120,
+                                      child: Text(
+                                        'Pair 2',
+                                        style: TextStyle(
+                                          fontSize: isSmallScreen ? 12 : 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromARGB(255, 220, 20, 20),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Skill',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Team 1',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Team 2',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Status',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Score',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: fixtures.map<DataRow>((fixture) => DataRow(
+                                  cells: [
+                                    DataCell(Text(
+                                      fixture['Time'] ?? '',
+                                      style: TextStyle(fontSize: isSmallScreen ? 11 : 13),
+                                    )),
+                                    DataCell(Text(
+                                      fixture['Court'] ?? '',
+                                      style: TextStyle(fontSize: isSmallScreen ? 11 : 13),
+                                    )),
+                                    DataCell(
+                                      SizedBox(
+                                        width: isSmallScreen ? 80 : 120,
+                                        child: _buildPairDisplay(fixture['Pair 1'] ?? '', isSmallScreen),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Icon(
+                                        Icons.sports_tennis,
+                                        size: isSmallScreen ? 12 : 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: isSmallScreen ? 80 : 120,
+                                        child: _buildPairDisplay(fixture['Pair 2'] ?? '', isSmallScreen),
+                                      ),
+                                    ),
+                                    DataCell(Text(
+                                      fixture['Skill'] ?? '',
+                                      style: TextStyle(fontSize: isSmallScreen ? 11 : 13),
+                                    )),
+                                    DataCell(Text(
+                                      fixture['Team 1'] ?? '',
+                                      style: TextStyle(fontSize: isSmallScreen ? 11 : 13),
+                                    )),
+                                    DataCell(Text(
+                                      fixture['Team 2'] ?? '',
+                                      style: TextStyle(fontSize: isSmallScreen ? 11 : 13),
+                                    )),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(fixture['Status'] ?? ''),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          fixture['Status']?.isNotEmpty == true ? fixture['Status'] : 'Scheduled',
+                                          style: TextStyle(
+                                            fontSize: isSmallScreen ? 10 : 12,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text(
+                                      _getScoreDisplay(fixture),
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 11 : 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )),
+                                  ],
+                                )).toList(),
+                              ),
+                            ),
                           ),
-                          columnSpacing: isSmallScreen ? 12 : 24,
-                          dataRowMinHeight: isSmallScreen ? 40 : 48,
-                          dataRowMaxHeight: isSmallScreen ? 50 : 56,
-                          columns: [
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 60 : 80,
-                                child: const Text('Time', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 60 : 80,
-                                child: const Text('Court', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 100 : 120,
-                                child: const Text('Pair 1', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 100 : 120,
-                                child: const Text('Pair 2', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 80 : 100,
-                                child: const Text('Team 1', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 80 : 100,
-                                child: const Text('Team 2', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 80 : 100,
-                                child: const Text('Status', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 50 : 70,
-                                child: const Text('T1 Score', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 50 : 70,
-                                child: const Text('T2 Score', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 80 : 100,
-                                child: const Text('Winner', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                          ],
-                          rows: fixtures.map((fixture) {
-                            return DataRow(
-                              cells: [
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 60 : 80,
-                                    child: Text(
-                                      fixture['scheduled_time'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 60 : 80,
-                                    child: Text(
-                                      fixture['venue'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 100 : 120,
-                                    child: Text(
-                                      fixture['pair1'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 100 : 120,
-                                    child: Text(
-                                      fixture['pair2'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 80 : 100,
-                                    child: Text(
-                                      fixture['team1_id'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 80 : 100,
-                                    child: Text(
-                                      fixture['team2_id'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 80 : 100,
-                                    child: _buildStatusChip(fixture['status'] ?? ''),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 50 : 70,
-                                    child: Text(
-                                      fixture['team1_score']?.toString() ?? '0',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 10 : 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 50 : 70,
-                                    child: Text(
-                                      fixture['team2_score']?.toString() ?? '0',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 10 : 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 80 : 100,
-                                    child: Text(
-                                      fixture['winner_team_id'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 10 : 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: fixture['winner_team_id']?.isNotEmpty == true 
-                                          ? Colors.green[700] 
-                                          : null,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
                         ),
                       ),
                     );
@@ -604,47 +600,74 @@ class _BattleDayPageState extends State<BattleDayPage>
     );
   }
 
-  // Build Status Chip for fixtures table
-  Widget _buildStatusChip(String status) {
-    Color chipColor;
-    String displayText = status;
+  // Helper method to display pair names vertically
+  Widget _buildPairDisplay(String pairText, bool isSmallScreen) {
+    if (pairText.isEmpty) return const Text('');
     
+    // Split by ' & ' and display vertically
+    final names = pairText.split(' & ');
+    if (names.length == 2) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            names[0].trim(),
+            style: TextStyle(
+              fontSize: isSmallScreen ? 10 : 12,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          Text(
+            names[1].trim(),
+            style: TextStyle(
+              fontSize: isSmallScreen ? 10 : 12,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      );
+    } else {
+      return Text(
+        pairText,
+        style: TextStyle(
+          fontSize: isSmallScreen ? 10 : 12,
+          fontWeight: FontWeight.w500,
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 2,
+      );
+    }
+  }
+
+  // Helper method to get status color
+  Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'scheduled':
-        chipColor = Colors.blue;
-        displayText = 'Scheduled';
-        break;
-      case 'live':
-      case 'in progress':
-        chipColor = Colors.green;
-        displayText = 'Live';
-        break;
       case 'completed':
-        chipColor = Colors.grey;
-        displayText = 'Done';
-        break;
+        return Colors.green;
+      case 'in progress':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
       default:
-        chipColor = Colors.orange;
-        displayText = status.isNotEmpty ? status : 'TBD';
+        return Colors.blue;
+    }
+  }
+
+  // Helper method to get score display
+  String _getScoreDisplay(Map<String, dynamic> fixture) {
+    final team1Score = fixture['Team1_Score']?.toString() ?? '0';
+    final team2Score = fixture['Team2_Score']?.toString() ?? '0';
+    
+    if (team1Score == '0' && team2Score == '0') {
+      return '-';
     }
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: chipColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        displayText,
-        style: const TextStyle(
-          color: Colors.white, 
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-        textAlign: TextAlign.center,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
+    return '$team1Score-$team2Score';
   }
 
   // Build Standings Table for specific category
@@ -678,141 +701,150 @@ class _BattleDayPageState extends State<BattleDayPage>
               : LayoutBuilder(
                   builder: (context, constraints) {
                     final isSmallScreen = constraints.maxWidth < 600;
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: isSmallScreen ? 500 : constraints.maxWidth,
-                        ),
-                        child: DataTable(
-                          headingRowColor: MaterialStateProperty.all(
-                            const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
-                          ),
-                          columnSpacing: isSmallScreen ? 20 : 56,
-                          dataRowMinHeight: isSmallScreen ? 40 : 48,
-                          dataRowMaxHeight: isSmallScreen ? 50 : 56,
-                          columns: [
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 120 : 150,
-                                child: const Text('Team', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                    return SizedBox(
+                      height: isSmallScreen ? 400 : 500, // Fixed height for vertical scrolling
+                      child: Scrollbar(
+                        thumbVisibility: true, // Make scrollbar always visible on desktop
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          physics: const AlwaysScrollableScrollPhysics(), // Ensure scrolling works on desktop
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth,
                               ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 60 : 80,
-                                child: const Text('Played', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  textAlign: TextAlign.center,
+                              child: DataTable(
+                                columnSpacing: isSmallScreen ? 12 : 20,
+                                headingRowColor: MaterialStateProperty.all(
+                                  const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
                                 ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 50 : 70,
-                                child: const Text('Won', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 50 : 70,
-                                child: const Text('Lost', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            DataColumn(
-                              label: SizedBox(
-                                width: isSmallScreen ? 60 : 80,
-                                child: const Text('Points', 
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
-                          rows: standings.map((team) {
-                            return DataRow(
-                              cells: [
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 120 : 150,
-                                    child: Text(
-                                      team['team'] ?? '',
-                                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 60 : 80,
-                                    child: Text(
-                                      team['played']?.toString() ?? '0',
-                                      style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 50 : 70,
-                                    child: Text(
-                                      team['won']?.toString() ?? '0',
+                                columns: [
+                                  DataColumn(
+                                    label: Text(
+                                      'Rank',
                                       style: TextStyle(
                                         fontSize: isSmallScreen ? 12 : 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 50 : 70,
-                                    child: Text(
-                                      team['lost']?.toString() ?? '0',
+                                  DataColumn(
+                                    label: Text(
+                                      'Team',
                                       style: TextStyle(
                                         fontSize: isSmallScreen ? 12 : 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ),
-                                ),
-                                DataCell(
-                                  SizedBox(
-                                    width: isSmallScreen ? 60 : 80,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
+                                  DataColumn(
+                                    label: Text(
+                                      'P',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
                                       ),
-                                      child: Text(
-                                        team['points']?.toString() ?? '0',
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'W',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'L',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Pts',
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 220, 20, 20),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: standings.asMap().entries.map<DataRow>((entry) {
+                                  final index = entry.key;
+                                  final standing = entry.value;
+                                  final isTopThree = index < 3;
+                                  
+                                  return DataRow(
+                                    color: isTopThree 
+                                        ? MaterialStateProperty.all(Colors.amber.withOpacity(0.1))
+                                        : null,
+                                    cells: [
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (isTopThree) 
+                                              Icon(
+                                                index == 0 ? Icons.emoji_events : Icons.star,
+                                                color: index == 0 ? const Color(0xFFFFD700) : Colors.amber,
+                                                size: isSmallScreen ? 16 : 20,
+                                              ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${index + 1}',
+                                              style: TextStyle(
+                                                fontSize: isSmallScreen ? 12 : 14,
+                                                fontWeight: isTopThree ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      DataCell(Text(
+                                        standing['team'] ?? '',
+                                        style: TextStyle(
+                                          fontSize: isSmallScreen ? 12 : 14,
+                                          fontWeight: isTopThree ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      )),
+                                      DataCell(Text(
+                                        '${standing['played'] ?? 0}',
+                                        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                                      )),
+                                      DataCell(Text(
+                                        '${standing['won'] ?? 0}',
+                                        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                                      )),
+                                      DataCell(Text(
+                                        '${standing['lost'] ?? 0}',
+                                        style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+                                      )),
+                                      DataCell(Text(
+                                        '${standing['points'] ?? 0}',
                                         style: TextStyle(
                                           fontSize: isSmallScreen ? 12 : 14,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color.fromARGB(255, 220, 20, 20),
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
+                                      )),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -823,58 +855,358 @@ class _BattleDayPageState extends State<BattleDayPage>
     );
   }
 
-  // Calculate standings from matches
+  // Calculate standings from match results  
   List<Map<String, dynamic>> _calculateStandings(List<Map<String, dynamic>> matches) {
-    Map<String, Map<String, int>> teamStats = {};
+    final Map<String, Map<String, dynamic>> teamStats = {};
     
-    for (var match in matches) {
-      String team1 = match['team1_id'] ?? '';
-      String team2 = match['team2_id'] ?? '';
-      String winner = match['winner_team_id'] ?? '';
-      String status = match['status'] ?? '';
+    print('=== Calculating standings for ${matches.length} matches ===');
+    for (final match in matches) {
+      print('Match: ${match['Team 1']} vs ${match['Team 2']} - Category: ${match['Category']} - Status: ${match['Status']}');
+    }
+    
+    // Step 1: Initialize all teams from Team 1 and Team 2 columns
+    for (final match in matches) {
+      final team1 = match['Team 1']?.toString();
+      final team2 = match['Team 2']?.toString();
       
-      if (team1.isEmpty || team2.isEmpty) continue;
-      
-      // Initialize teams if not exists
-      teamStats[team1] ??= {'played': 0, 'won': 0, 'lost': 0, 'points': 0};
-      teamStats[team2] ??= {'played': 0, 'won': 0, 'lost': 0, 'points': 0};
-      
-      // Only count completed matches
-      if (status.toLowerCase() == 'completed') {
-        teamStats[team1]!['played'] = (teamStats[team1]!['played'] ?? 0) + 1;
-        teamStats[team2]!['played'] = (teamStats[team2]!['played'] ?? 0) + 1;
-        
-        if (winner == team1) {
-          teamStats[team1]!['won'] = (teamStats[team1]!['won'] ?? 0) + 1;
-          teamStats[team2]!['lost'] = (teamStats[team2]!['lost'] ?? 0) + 1;
-        } else if (winner == team2) {
-          teamStats[team2]!['won'] = (teamStats[team2]!['won'] ?? 0) + 1;
-          teamStats[team1]!['lost'] = (teamStats[team1]!['lost'] ?? 0) + 1;
-        }
+      if (team1?.isNotEmpty == true) {
+        teamStats[team1!] ??= {'team': team1, 'played': 0, 'won': 0, 'lost': 0, 'points': 0};
+      }
+      if (team2?.isNotEmpty == true) {
+        teamStats[team2!] ??= {'team': team2, 'played': 0, 'won': 0, 'lost': 0, 'points': 0};
       }
     }
     
-    // Convert to list and calculate points
-    List<Map<String, dynamic>> standings = [];
-    teamStats.forEach((team, stats) {
-      standings.add({
-        'team': team,
-        'played': stats['played'],
-        'won': stats['won'],
-        'lost': stats['lost'],
-        'points': stats['won'], // 1 point per win as per requirements
-      });
-    });
+    // Step 2: Calculate played count from completed matches
+    for (final match in matches) {
+      final team1 = match['Team 1']?.toString();
+      final team2 = match['Team 2']?.toString();
+      final status = match['Status']?.toString().toLowerCase();
+      
+      if (team1?.isNotEmpty != true || team2?.isNotEmpty != true) continue;
+      if (status != 'completed') continue;
+      
+      // Update played count for both teams
+      teamStats[team1!]!['played']++;
+      teamStats[team2!]!['played']++;
+    }
     
-    // Sort by points descending, then by wins descending
+    // Step 3: Calculate wins by counting appearances in Winner_Team_ID column
+    for (final match in matches) {
+      final status = match['Status']?.toString().toLowerCase();
+      final winningTeam = match['Winner_Team_ID']?.toString();
+      
+      if (status != 'completed') continue;
+      if (winningTeam?.isNotEmpty != true) continue;
+      
+      // Count win for the team that appears in winning_team_id
+      if (teamStats.containsKey(winningTeam!)) {
+        teamStats[winningTeam]!['won']++;
+      }
+    }
+    
+    // Step 4: Calculate lost = played - won and points = 1 * won for all teams
+    for (final teamId in teamStats.keys) {
+      final played = teamStats[teamId]!['played'] as int;
+      final won = teamStats[teamId]!['won'] as int;
+      teamStats[teamId]!['lost'] = played - won;
+      teamStats[teamId]!['points'] = 1 * won; // Points = 1 * Won
+      print('Team $teamId: P=$played W=$won L=${played - won} Pts=${1 * won}');
+    }
+    
+    // Convert to list and sort by points (descending), then by wins
+    final standings = teamStats.values.toList();
     standings.sort((a, b) {
-      int pointsCompare = (b['points'] ?? 0).compareTo(a['points'] ?? 0);
+      final pointsCompare = (b['points'] ?? 0).compareTo(a['points'] ?? 0);
       if (pointsCompare == 0) {
         return (b['won'] ?? 0).compareTo(a['won'] ?? 0);
       }
       return pointsCompare;
     });
     
+    print('=== Final standings (${standings.length} teams) ===');
+    for (int i = 0; i < standings.length; i++) {
+      final team = standings[i];
+      print('${i + 1}. ${team['team']}: ${team['points']} pts (${team['won']}W-${team['lost']}L-${team['played']}P)');
+    }
+    
     return standings;
+  }
+
+  // Build paginated fixtures for desktop
+  Widget _buildPaginatedFixtures(String category, List<Map<String, dynamic>> fixtures, BoxConstraints constraints) {
+    final currentPage = _currentPage[category] ?? 0;
+    final totalPages = (fixtures.length / _itemsPerPage).ceil();
+    
+    // Calculate the fixtures for current page
+    final startIndex = currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, fixtures.length);
+    final paginatedFixtures = fixtures.sublist(startIndex, endIndex);
+    
+    return Column(
+      children: [
+        // Page indicator
+        if (totalPages > 1)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Page ${currentPage + 1} of $totalPages (${fixtures.length} matches)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: currentPage > 0
+                          ? () => setState(() => _currentPage[category] = currentPage - 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left),
+                      tooltip: 'Previous Page',
+                    ),
+                    IconButton(
+                      onPressed: currentPage < totalPages - 1
+                          ? () => setState(() => _currentPage[category] = currentPage + 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right),
+                      tooltip: 'Next Page',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        
+        // Fixtures table
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+              ),
+              child: DataTable(
+                columnSpacing: 16,
+                headingRowColor: MaterialStateProperty.all(
+                  const Color.fromARGB(255, 220, 20, 20).withOpacity(0.1),
+                ),
+                columns: const [
+                  DataColumn(
+                    label: Text(
+                      'Time',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Court',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Pair 1',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 220, 20, 20),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataColumn(label: Text('vs')),
+                  DataColumn(
+                    label: SizedBox(
+                      width: 120,
+                      child: Text(
+                        'Pair 2',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 220, 20, 20),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Skill',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Team 1',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Team 2',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Status',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Score',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 220, 20, 20),
+                      ),
+                    ),
+                  ),
+                ],
+                rows: paginatedFixtures.map<DataRow>((fixture) => DataRow(
+                  cells: [
+                    DataCell(Text(
+                      fixture['Time'] ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    )),
+                    DataCell(Text(
+                      fixture['Court'] ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    )),
+                    DataCell(
+                      SizedBox(
+                        width: 120,
+                        child: _buildPairDisplay(fixture['Pair 1'] ?? '', false),
+                      ),
+                    ),
+                    DataCell(
+                      Icon(
+                        Icons.sports_tennis,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 120,
+                        child: _buildPairDisplay(fixture['Pair 2'] ?? '', false),
+                      ),
+                    ),
+                    DataCell(Text(
+                      fixture['Skill'] ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    )),
+                    DataCell(Text(
+                      fixture['Team 1'] ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    )),
+                    DataCell(Text(
+                      fixture['Team 2'] ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    )),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(fixture['Status'] ?? ''),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          fixture['Status']?.isNotEmpty == true ? fixture['Status'] : 'Scheduled',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    DataCell(Text(
+                      _getScoreDisplay(fixture),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )),
+                  ],
+                )).toList(),
+              ),
+            ),
+          ),
+        ),
+        
+        // Bottom pagination controls (optional, for easier access)
+        if (totalPages > 1)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(totalPages.clamp(0, 5), (index) {
+                // Show max 5 page buttons
+                int pageIndex;
+                if (totalPages <= 5) {
+                  pageIndex = index;
+                } else {
+                  // Smart pagination: show pages around current page
+                  if (currentPage < 3) {
+                    pageIndex = index;
+                  } else if (currentPage > totalPages - 3) {
+                    pageIndex = totalPages - 5 + index;
+                  } else {
+                    pageIndex = currentPage - 2 + index;
+                  }
+                }
+                
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: TextButton(
+                    onPressed: () => setState(() => _currentPage[category] = pageIndex),
+                    style: TextButton.styleFrom(
+                      backgroundColor: pageIndex == currentPage 
+                          ? const Color.fromARGB(255, 220, 20, 20) 
+                          : Colors.grey.shade200,
+                      foregroundColor: pageIndex == currentPage 
+                          ? Colors.white 
+                          : Colors.black87,
+                      minimumSize: const Size(40, 36),
+                    ),
+                    child: Text('${pageIndex + 1}'),
+                  ),
+                );
+              }),
+            ),
+          ),
+      ],
+    );
   }
 }

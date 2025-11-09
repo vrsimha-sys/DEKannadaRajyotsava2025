@@ -17,6 +17,10 @@ dependencies:
   # HTTP and API calls
   http: ^1.1.0
   
+  # Google Sheets API
+  googleapis: ^11.4.0
+  googleapis_auth: ^1.4.1
+  
   # Utilities
   intl: ^0.19.0
   

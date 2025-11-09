@@ -17,6 +17,7 @@ class GoogleSheetsService {
     'Live_Updates': '467423031',      // Live_Updates sheet
     'Tournament_Stats': '1466958466',  // Tournament_Stats sheet
     'Tournament_Config': '780447557', // Tournament_Config sheet
+    'Umpires': '738092593',     // Umpires sheet - Replace with actual GID
   };
 
   // Debug method to test Google Sheets connection
@@ -383,19 +384,22 @@ class GoogleSheetsService {
       final rows = data.skip(1).toList();
       
       List<Map<String, dynamic>> matches = rows.map((row) => <String, dynamic>{
-        // Actual columns: Time, Court, Pair 1, Pair 2, Category, Skill, Team 1, Team 2, Status, Team1_Score, Team2_Score, Winner_Team_ID
-        'scheduled_time': (row.isNotEmpty ? row[0] : '').toString().trim(), // Time
-        'venue': (row.length > 1 ? row[1] : '').toString().trim(), // Court
-        'pair1': (row.length > 2 ? row[2] : '').toString().trim(), // Pair 1
-        'pair2': (row.length > 3 ? row[3] : '').toString().trim(), // Pair 2
-        'category': (row.length > 4 ? row[4] : '').toString().trim(), // Category
-        'skill': (row.length > 5 ? row[5] : '').toString().trim(), // Skill
-        'team1_id': (row.length > 6 ? row[6] : '').toString().trim(), // Team 1
-        'team2_id': (row.length > 7 ? row[7] : '').toString().trim(), // Team 2
-        'status': (row.length > 8 ? row[8] : '').toString().trim(), // Status
-        'team1_score': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0, // Team1_Score
-        'team2_score': row.length > 10 ? (int.tryParse(row[10].toString()) ?? 0) : 0, // Team2_Score
-        'winner_team_id': (row.length > 11 ? row[11] : '').toString().trim(), // Winner_Team_ID
+        // Using exact Google Sheet column names: Time, Court, Pair 1, Pair 2, Category, Skill, Team 1, Team 2, Status, Team1_Score, Team2_Score, Winner_Team_ID
+        'Time': (row.isNotEmpty ? row[0] : '').toString().trim(),
+        'Court': (row.length > 1 ? row[1] : '').toString().trim(),
+        'Pair 1': (row.length > 2 ? row[2] : '').toString().trim(),
+        'Pair 2': (row.length > 3 ? row[3] : '').toString().trim(),
+        'Category': (row.length > 4 ? row[4] : '').toString().trim(),
+        'Skill': (row.length > 5 ? row[5] : '').toString().trim(),
+        'Team 1': (row.length > 6 ? row[6] : '').toString().trim(),
+        'Team 2': (row.length > 7 ? row[7] : '').toString().trim(),
+        'Status': (row.length > 8 ? row[8] : '').toString().trim(),
+        'Team1_Score': row.length > 9 ? (int.tryParse(row[9].toString()) ?? 0) : 0,
+        'Team2_Score': row.length > 10 ? (int.tryParse(row[10].toString()) ?? 0) : 0,
+        'Winner_Team_ID': (row.length > 11 ? row[11] : '').toString().trim(),
+        
+        // Keep backward compatibility with old field names for category filtering
+        'category': (row.length > 4 ? row[4] : '').toString().trim(),
         
         // Keep some legacy fields for compatibility but set them to empty/default values
         'match_id': '${row.isNotEmpty ? row[0] : ''}_${row.length > 1 ? row[1] : ''}', // Generate from time + court
@@ -432,9 +436,38 @@ class GoogleSheetsService {
       
       // Filter by category if specified
       if (category != null) {
-        filteredMatches = filteredMatches.where((match) => 
-          match['category'].toString().toLowerCase() == category.toLowerCase()
-        ).toList();
+        print('=== Filtering matches by category: $category ===');
+        print('Total matches before filter: ${allMatches.length}');
+        filteredMatches = filteredMatches.where((match) { 
+          final matchCategory = match['category'].toString().trim().toLowerCase();
+          final targetCategory = category.trim().toLowerCase();
+          
+          // Handle common category variations
+          final normalizedMatchCategory = matchCategory
+              .replaceAll('men', 'men')
+              .replaceAll('women', 'women') 
+              .replaceAll('woman', 'women')
+              .replaceAll('kids', 'kids')
+              .replaceAll('children', 'kids')
+              .replaceAll('child', 'kids');
+          
+          final normalizedTargetCategory = targetCategory
+              .replaceAll('men', 'men')
+              .replaceAll('women', 'women')
+              .replaceAll('woman', 'women') 
+              .replaceAll('kids', 'kids')
+              .replaceAll('children', 'kids')
+              .replaceAll('child', 'kids');
+          
+          final matches = normalizedMatchCategory == normalizedTargetCategory;
+          if (!matches) {
+            print('Excluding match: ${match['Team 1']} vs ${match['Team 2']} (category: "$matchCategory" != "$targetCategory")');
+          } else {
+            print('Including match: ${match['Team 1']} vs ${match['Team 2']} (category: "$matchCategory")');
+          }
+          return matches;
+        }).toList();
+        print('Total matches after filter: ${filteredMatches.length}');
       }
       
       // Filter by status if specified
@@ -447,6 +480,74 @@ class GoogleSheetsService {
       return filteredMatches;
     } catch (e) {
       print('Error fetching matches by category: $e');
+      return [];
+    }
+  }
+
+  // UMPIRES MANAGEMENT
+  Future<List<Map<String, dynamic>>> getUmpires() async {
+    try {
+      print('GoogleSheetsService: Starting getUmpires()');
+      print('GoogleSheetsService: Umpires GID = ${_sheetGids['Umpires']}');
+      print('GoogleSheetsService: Full URL = $_baseUrl${_sheetGids['Umpires']}');
+      
+      final data = await readSheetData('Umpires');
+      print('GoogleSheetsService: Umpires raw data length: ${data.length}');
+      
+      if (data.isEmpty) {
+        print('GoogleSheetsService: CRITICAL - No data returned from Umpires sheet!');
+        print('GoogleSheetsService: This usually means:');
+        print('  1. Sheet GID is incorrect');
+        print('  2. Sheet is not public');
+        print('  3. Sheet does not exist');
+        return [];
+      }
+      
+      if (data.length <= 1) {
+        print('GoogleSheetsService: Only header row found, no umpire data');
+        print('GoogleSheetsService: Header row: ${data.isNotEmpty ? data[0] : 'None'}');
+        return [];
+      }
+      
+      // Print first few rows for debugging
+      print('GoogleSheetsService: First 3 rows of raw data:');
+      for (int i = 0; i < data.length && i < 3; i++) {
+        print('  Row $i: ${data[i]}');
+      }
+      
+      // Skip header row (index 0)
+      final rows = data.skip(1).toList();
+      print('GoogleSheetsService: Processing ${rows.length} umpire rows');
+      
+      List<Map<String, dynamic>> umpires = rows.map((row) => <String, dynamic>{
+        'user_name': (row.isNotEmpty ? row[0] : '').toString().trim(), // Column A: user_name
+        'password': (row.length > 1 ? row[1] : '').toString().trim(),  // Column B: password
+        // Legacy field mappings for backward compatibility
+        'umpire_name': (row.isNotEmpty ? row[0] : '').toString().trim(), // Same as user_name
+      }).toList();
+      
+      // Filter out empty entries
+      umpires = umpires.where((umpire) => 
+        umpire['user_name'].toString().trim().isNotEmpty
+      ).toList();
+      
+      print('GoogleSheetsService: Final umpires count: ${umpires.length}');
+      return umpires;
+    } catch (e) {
+      print('GoogleSheetsService: Error fetching umpires: $e');
+      return [];
+    }
+  }
+
+  // Get available umpires (those not currently assigned)
+  Future<List<Map<String, dynamic>>> getAvailableUmpires() async {
+    try {
+      final allUmpires = await getUmpires();
+      return allUmpires.where((umpire) => 
+        umpire['availability'].toString().toLowerCase() == 'available'
+      ).toList();
+    } catch (e) {
+      print('Error fetching available umpires: $e');
       return [];
     }
   }
@@ -731,4 +832,59 @@ class GoogleSheetsService {
     
     return result;
   }
+
+  // Test Umpires sheet connectivity specifically
+  Future<Map<String, dynamic>> testUmpiresSheet() async {
+    try {
+      final gid = _sheetGids['Umpires'];
+      final url = '$_baseUrl$gid';
+      
+      print('Testing Umpires sheet connectivity...');
+      print('GID: $gid');
+      print('URL: $url');
+      
+      final response = await http.get(Uri.parse(url));
+      
+      final result = <String, dynamic>{
+        'success': false,
+        'statusCode': response.statusCode,
+        'url': url,
+        'gid': gid,
+        'error': null,
+        'rowCount': 0,
+        'sampleData': <String>[],
+      };
+      
+      if (response.statusCode != 200) {
+        result['error'] = 'HTTP ${response.statusCode} - Sheet not accessible';
+        return result;
+      }
+      
+      if (response.body.contains('Sign in') || response.body.contains('authentication')) {
+        result['error'] = 'Sheet requires authentication - not public';
+        return result;
+      }
+      
+      final lines = response.body.split('\n');
+      final nonEmptyLines = lines.where((line) => line.trim().isNotEmpty).toList();
+      
+      result['success'] = true;
+      result['rowCount'] = nonEmptyLines.length;
+      result['sampleData'] = nonEmptyLines.take(5).toList();
+      
+      return result;
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+        'statusCode': 0,
+        'url': '',
+        'gid': _sheetGids['Umpires'],
+        'rowCount': 0,
+        'sampleData': <String>[],
+      };
+    }
+  }
+
+
 }
